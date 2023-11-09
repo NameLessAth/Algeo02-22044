@@ -1,7 +1,6 @@
-import { extractContrast, createGLCM } from '../src/src/functions/TextureRetrieval';
 const { createCanvas, loadImage } = require('canvas');
 
-async function ImageToMatrix(imagePath) {
+async function extractImageToMatrix(imagePath) {
     const canvas = createCanvas(256, 256);
     const ctx = canvas.getContext('2d');
 
@@ -27,8 +26,8 @@ async function ImageToMatrix(imagePath) {
     return matrix;
 }
 
-async function GrayscaleMatrix(matrixRGB) {
-    const GrayscaleMatrix = [];
+async function MatrixGray(matrixRGB) {
+    const matrixGray = [];
     for (let i = 0; i < matrixRGB.length; i++) {
         const row = [];
         for (let j = 0; j < matrixRGB[i].length; j++) {
@@ -36,15 +35,16 @@ async function GrayscaleMatrix(matrixRGB) {
             const gray = rgbToGrayScale(r, g, b);
             row.push(gray);
         }
-        GrayscaleMatrix.push(row);
+        matrixGray.push(row);
     }
-    return GrayscaleMatrix;
+    return matrixGray;
 }
 
 function quantizeMatrix(matrix) {
     const flatMatrix = matrix.flat();
     const min = Math.min(...flatMatrix);
     const max = Math.max(...flatMatrix);
+
     const normalized = flatMatrix.map(value => {
         return Math.round((value - min) * (255 / (max - min)));
     });
@@ -59,44 +59,12 @@ function quantizeMatrix(matrix) {
     return reshapedClean;
 }
 
-function createGLCM(matrix, dx, dy levels) {
-    const numRows = matrix.length;
-    const numCols = matrix[0].length;
-    const glcm = new Array(levels).fill(0).map(() => new Array(levels).fill(0));
-
-    for (let i = 0; i < numRows; i++) {
-        for (let j = 0; j < numCols; j++) {
-            const current = matrix[i][j];
-            let nextRow = i + dx;
-            let nextCol = j + dy;
-
-            if (nextRow >= 0 && nextRow < numRows && nextCol >= 0 && nextCol < numCols) {
-                const neighbor = matrix[nextRow][nextCol];
-                glcm[current][neighbor] += 1;
-            }
-        }
-    }
-    return glcm;
-}
-
-async function processImage() {
-    try {
-        const testFile = '0-resize.jpg';
-        const matrixRaw = await ImageToMatrix(testFile);
-        const grayMatrix = await GrayscaleMatrix(matrixRaw);
-        const quantifizeMatrix = await quantizeMatrix(grayMatrix);
-        const GLCM = await createGLCM(quantifizeMatrix, 1, 1, 256); 
-        console.log(GLCM);
-  } catch (error) {
-      console.error('Error occurred:', error);
-    }
-}
-
 function rgbToGrayScale(r, g, b) {
     return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
+// Test the execution time
 const start = process.hrtime();
-processImage();
+// Add your function calls here
 const end = process.hrtime(start);
-console.info('Execution time: %ds %dms', end[0], end[1] / 1000000)
+console.info('Execution time: %ds %dms', end[0], end[1] / 1000000);

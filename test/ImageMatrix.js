@@ -36,42 +36,43 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.rgbToGrayScale = void 0;
 var _a = require('canvas'), createCanvas = _a.createCanvas, loadImage = _a.loadImage;
-function extractImageToMatrix(imagePath) {
+function ImageToMatrix(imagePath) {
     return __awaiter(this, void 0, void 0, function () {
-        var canvas, ctx, image, imageData, data, width, height, matrix, i, row, j, position, _a, r, g, b, a;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
+        var canvas, ctx, image, imageData, data, width, height, matrix, i, row, j, position, r, g, b;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
                 case 0:
                     canvas = createCanvas(256, 256);
                     ctx = canvas.getContext('2d');
                     return [4 /*yield*/, loadImage(imagePath)];
                 case 1:
-                    image = _b.sent();
+                    image = _a.sent();
                     ctx.drawImage(image, 0, 0, 256, 256);
                     imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     data = imageData.data, width = imageData.width, height = imageData.height;
-                    matrix = [];
+                    matrix = new Array(height);
                     for (i = 0; i < height; i++) {
-                        row = [];
+                        row = new Array(width);
                         for (j = 0; j < width; j++) {
                             position = (i * width + j) * 4;
-                            _a = data.slice(position, position + 4), r = _a[0], g = _a[1], b = _a[2], a = _a[3];
-                            row.push([r, g, b]);
+                            r = data[position];
+                            g = data[position + 1];
+                            b = data[position + 2];
+                            row[j] = [r, g, b];
                         }
-                        matrix.push(row);
+                        matrix[i] = row;
                     }
                     return [2 /*return*/, matrix];
             }
         });
     });
 }
-function MatrixGray(matrixRGB) {
+function GrayscaleMatrix(matrixRGB) {
     return __awaiter(this, void 0, void 0, function () {
-        var matrixGray, i, row, j, _a, r, g, b, gray;
+        var GrayscaleMatrix, i, row, j, _a, r, g, b, gray;
         return __generator(this, function (_b) {
-            matrixGray = [];
+            GrayscaleMatrix = [];
             for (i = 0; i < matrixRGB.length; i++) {
                 row = [];
                 for (j = 0; j < matrixRGB[i].length; j++) {
@@ -79,92 +80,66 @@ function MatrixGray(matrixRGB) {
                     gray = rgbToGrayScale(r, g, b);
                     row.push(gray);
                 }
-                matrixGray.push(row);
+                GrayscaleMatrix.push(row);
             }
-            return [2 /*return*/, matrixGray];
+            return [2 /*return*/, GrayscaleMatrix];
         });
     });
 }
 function quantizeMatrix(matrix) {
-    var min = Math.min.apply(Math, matrix.flat());
-    var max = Math.max.apply(Math, matrix.flat());
-    var normalized = matrix.map(function (row) { return row.map(function (value) {
+    var flatMatrix = matrix.flat();
+    var min = Math.min.apply(Math, flatMatrix);
+    var max = Math.max.apply(Math, flatMatrix);
+    var normalized = flatMatrix.map(function (value) {
         return Math.round((value - min) * (255 / (max - min)));
-    }); });
-    var reshaped = new Array(256).fill().map(function () { return new Array(256).fill(0); });
+    });
+    var reshaped = new Array(256).fill(0).map(function () { return new Array(256).fill(0); });
     for (var i = 0; i < 256; i++) {
         for (var j = 0; j < 256; j++) {
             reshaped[i][j] = normalized[i * 256 + j];
         }
     }
-    var reshapedClean = reshaped.map(function (row) { return row.filter(function (value) { return value !== undefined; }); }).filter(function (row) { return row.length > 0; });
+    var reshapedClean = reshaped.filter(function (row) { return row.some(function (value) { return value !== 0; }); });
     return reshapedClean;
 }
-function extractContrast(matrix) {
-    var min = Math.min.apply(Math, matrix.flat());
-    var max = Math.max.apply(Math, matrix.flat());
-    var normalized = matrix.map(function (row) { return row.map(function (value) {
-        return Math.round((value - min) * (255 / (max - min)));
-    }); });
-    var reshaped = new Array(256).fill().map(function () { return new Array(256).fill(0); });
-    for (var i = 0; i < 256; i++) {
-        for (var j = 0; j < 256; j++) {
-            reshaped[i][j] = normalized[i * 256 + j];
-        }
-    }
-    var contrast = new Array(256).fill().map(function () { return new Array(256).fill(0); });
-    for (var i = 0; i < 256; i++) {
-        for (var j = 0; j < 256; j++) {
-            if (i === 0 || j === 0 || i === 255 || j === 255) {
-                contrast[i][j] = 0;
-            }
-            else {
-                var left = reshaped[i - 1][j];
-                var right = reshaped[i + 1][j];
-                var top_1 = reshaped[i][j - 1];
-                var bottom = reshaped[i][j + 1];
-                var dx = (right - left) / 2;
-                var dy = (bottom - top_1) / 2;
-                var gradient = Math.sqrt(dx * dx + dy * dy);
-                contrast[i][j] = gradient;
+function createGLCM(matrix, dx, dy, levels) {
+    var numRows = matrix.length;
+    var numCols = matrix[0].length;
+    var glcm = new Array(levels).fill(0).map(function () { return new Array(levels).fill(0); });
+    for (var i = 0; i < numRows; i++) {
+        for (var j = 0; j < numCols; j++) {
+            var current = matrix[i][j];
+            var nextRow = i + dx;
+            var nextCol = j + dy;
+            if (nextRow >= 0 && nextRow < numRows && nextCol >= 0 && nextCol < numCols) {
+                var neighbor = matrix[nextRow][nextCol];
+                glcm[current][neighbor] += 1;
             }
         }
     }
-    var contrastClean = contrast.map(function (row) { return row.filter(function (value) { return value !== undefined; }); }).filter(function (row) { return row.length > 0; });
-    return contrastClean;
+    return glcm;
 }
-function rgbToGrayScale(r, g, b) {
-    var grayValue = 0.299 * r + 0.587 * g + 0.114 * b;
-    return grayValue;
-}
-exports.rgbToGrayScale = rgbToGrayScale;
 function processImage() {
     return __awaiter(this, void 0, void 0, function () {
-        var testFile, matrixRaw, grayMatrix, quantifizeMatrix, contrast, error_1;
+        var testFile, matrixRaw, grayMatrix, quantifizeMatrix, GLCM, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     _a.trys.push([0, 5, , 6]);
-                    testFile = '0.jpg';
-                    return [4 /*yield*/, extractImageToMatrix(testFile)];
+                    testFile = '0-resize.jpg';
+                    return [4 /*yield*/, ImageToMatrix(testFile)];
                 case 1:
                     matrixRaw = _a.sent();
-                    return [4 /*yield*/, MatrixGray(matrixRaw)];
+                    return [4 /*yield*/, GrayscaleMatrix(matrixRaw)];
                 case 2:
                     grayMatrix = _a.sent();
                     return [4 /*yield*/, quantizeMatrix(grayMatrix)];
                 case 3:
                     quantifizeMatrix = _a.sent();
-                    return [4 /*yield*/, extractContrast(quantifizeMatrix)];
+                    return [4 /*yield*/, createGLCM(quantifizeMatrix, 1, 1, 256)];
                 case 4:
-                    contrast = _a.sent();
-                    console.log(matrixRaw);
-                    console.log("================================================");
-                    console.log(grayMatrix);
-                    console.log("================================================");
-                    console.log(quantifizeMatrix);
-                    console.log("================================================");
-                    console.log(contrast);
+                    GLCM = _a.sent();
+                    console.log(GLCM);
                     return [3 /*break*/, 6];
                 case 5:
                     error_1 = _a.sent();
@@ -175,7 +150,10 @@ function processImage() {
         });
     });
 }
-var start = performance.now();
+function rgbToGrayScale(r, g, b) {
+    return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+var start = process.hrtime();
 processImage();
-var end = performance.now();
-console.log("Execution time: ".concat(end - start, " milliseconds"));
+var end = process.hrtime(start);
+console.info('Execution time: %ds %dms', end[0], end[1] / 1000000);

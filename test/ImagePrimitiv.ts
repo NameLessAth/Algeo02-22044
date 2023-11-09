@@ -14,12 +14,4 @@ async function resizeImage(image:String, result:String): Promise<void>{
     }catch(error){
         console.log(error);
     }
-        
 }
-
-export function rgbToGrayScale(r:number, g: number, b: number): number{
-    const grayValue = 0.299 * r + 0.587 * g + 0.114 * b; 
-    return grayValue; 
-}
-
-
