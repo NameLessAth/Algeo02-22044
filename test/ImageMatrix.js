@@ -38,6 +38,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var _a = require('canvas'), createCanvas = _a.createCanvas, loadImage = _a.loadImage;
 var math = require("mathjs");
+var CosineSimiliarity_1 = require("../src/src/functions/CosineSimiliarity");
 function ImageToMatrix(imagePath) {
     return __awaiter(this, void 0, void 0, function () {
         var canvas, ctx, image, imageData, data, width, height, matrix, i, row, j, position, r, g, b;
@@ -91,13 +92,13 @@ function quantizeMatrix(matrix) {
     var flatMatrix = matrix.flat();
     var min = Math.min.apply(Math, flatMatrix);
     var max = Math.max.apply(Math, flatMatrix);
-    var normalized = flatMatrix.map(function (value) {
+    var GrayscaleInt = flatMatrix.map(function (value) {
         return Math.round((value - min) * (255 / (max - min)));
     });
     var reshaped = new Array(256).fill(0).map(function () { return new Array(256).fill(0); });
     for (var i = 0; i < 256; i++) {
         for (var j = 0; j < 256; j++) {
-            reshaped[i][j] = normalized[i * 256 + j];
+            reshaped[i][j] = GrayscaleInt[i * 256 + j];
         }
     }
     var reshapedClean = reshaped.filter(function (row) { return row.some(function (value) { return value !== 0; }); });
@@ -142,14 +143,64 @@ function determinant(Matrix) {
     var resultDet = math.det(Matrix);
     return resultDet;
 }
-function normalizeMatrix(matrix) {
-    var numRows = matrix.length;
-    var numCols = matrix[0].length;
-    var totalSum = matrix.reduce(function (sum, row) { return sum + row.reduce(function (rowSum, value) { return rowSum + value; }, 0); }, 0);
-    var normalized = matrix.map(function (row) { return row.map(function (value) { return value / totalSum; }); });
-    return normalized;
+function normalizeMatrix(file) {
+    return __awaiter(this, void 0, void 0, function () {
+        var matrixRaw, grayMatrix, quantifizeMatrix, GLCM, GLCMTranspose, resultGLCM, numRows, numCols, totalSum, normalized;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, ImageToMatrix(file)];
+                case 1:
+                    matrixRaw = _a.sent();
+                    return [4 /*yield*/, GrayscaleMatrix(matrixRaw)];
+                case 2:
+                    grayMatrix = _a.sent();
+                    quantifizeMatrix = quantizeMatrix(grayMatrix);
+                    GLCM = createCoOccurrenceMatrix(quantifizeMatrix, 0, 1, 0);
+                    GLCMTranspose = transposeMatrix(GLCM);
+                    resultGLCM = addMatrix(GLCM, GLCMTranspose);
+                    numRows = resultGLCM.length;
+                    numCols = resultGLCM[0].length;
+                    totalSum = resultGLCM.reduce(function (sum, row) { return sum + row.reduce(function (rowSum, value) { return rowSum + value; }, 0); }, 0);
+                    normalized = resultGLCM.map(function (row) { return row.map(function (value) { return value / totalSum; }); });
+                    return [2 /*return*/, normalized];
+            }
+        });
+    });
 }
-function contrastMatrix(matrix) {
+function extractContrast(matrix) {
+    var contrast = 0;
+    for (var i = 0; i < matrix.length; ++i) {
+        for (var j = 0; j < matrix[i].length; ++j) {
+            contrast += matrix[i][j] * Math.pow((i - j), 2);
+        }
+    }
+    return contrast;
+}
+function extractHomogeneity(matrix) {
+    var result = 0;
+    for (var i = 0; i < matrix.length; ++i) {
+        for (var j = 0; j < matrix[i].length; ++j) {
+            result += matrix[i][j] / (1 + Math.pow(matrix[i][j], 2));
+        }
+    }
+    return result;
+}
+function extractEntropy(matrix) {
+    var result = 0;
+    for (var i = 0; i < matrix.length; ++i) {
+        for (var j = 0; j < matrix[i].length; ++j) {
+            if (matrix[i][j] !== 0) {
+                result += matrix[i][j] * Math.log(matrix[i][j]);
+            }
+        }
+    }
+    return result;
+}
+function vectorTexture(matrix) {
+    var contrast = extractContrast(matrix);
+    var homogeneity = extractHomogeneity(matrix);
+    var entropy = extractEntropy(matrix);
+    return [contrast, homogeneity, entropy];
 }
 function printMatrix(matrix) {
     matrix.forEach(function (row) {
@@ -159,7 +210,7 @@ function printMatrix(matrix) {
 }
 function processImage() {
     return __awaiter(this, void 0, void 0, function () {
-        var matrixTest, testFile, matrixRaw, grayMatrix, quantifizeMatrix, GLCM, GLCMTranspose, resultGLCM, normalizedGLCM, error_1;
+        var matrixTest, testFile, testFile2, normalizedGLCM, normalizedGLCM2, contrast, homogeneity, entropy, contrast2, homogeneity2, entropy2, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -170,38 +221,49 @@ function processImage() {
                     ];
                     _a.label = 1;
                 case 1:
-                    _a.trys.push([1, 9, , 10]);
-                    testFile = '0-resize.jpg';
-                    return [4 /*yield*/, ImageToMatrix(testFile)];
+                    _a.trys.push([1, 10, , 11]);
+                    testFile = '0.jpg';
+                    testFile2 = '0-resize.jpg';
+                    return [4 /*yield*/, normalizeMatrix(testFile)];
                 case 2:
-                    matrixRaw = _a.sent();
-                    return [4 /*yield*/, GrayscaleMatrix(matrixRaw)];
-                case 3:
-                    grayMatrix = _a.sent();
-                    return [4 /*yield*/, quantizeMatrix(grayMatrix)];
-                case 4:
-                    quantifizeMatrix = _a.sent();
-                    console.log(matrixRaw[100]);
-                    console.log(grayMatrix[100]);
-                    console.log(quantifizeMatrix[100]);
-                    return [4 /*yield*/, createCoOccurrenceMatrix(quantifizeMatrix, 0, 1, 0)];
-                case 5:
-                    GLCM = _a.sent();
-                    return [4 /*yield*/, transposeMatrix(GLCM)];
-                case 6:
-                    GLCMTranspose = _a.sent();
-                    return [4 /*yield*/, addMatrix(GLCM, GLCMTranspose)];
-                case 7:
-                    resultGLCM = _a.sent();
-                    return [4 /*yield*/, normalizeMatrix(resultGLCM)];
-                case 8:
                     normalizedGLCM = _a.sent();
-                    return [3 /*break*/, 10];
+                    return [4 /*yield*/, normalizeMatrix(testFile2)];
+                case 3:
+                    normalizedGLCM2 = _a.sent();
+                    console.log("Image 1");
+                    return [4 /*yield*/, extractContrast(normalizedGLCM)];
+                case 4:
+                    contrast = _a.sent();
+                    return [4 /*yield*/, extractHomogeneity(normalizedGLCM)];
+                case 5:
+                    homogeneity = _a.sent();
+                    return [4 /*yield*/, extractEntropy(normalizedGLCM)];
+                case 6:
+                    entropy = _a.sent();
+                    console.log(contrast);
+                    console.log(homogeneity);
+                    console.log(entropy);
+                    console.log("Image 2");
+                    return [4 /*yield*/, extractContrast(normalizedGLCM2)];
+                case 7:
+                    contrast2 = _a.sent();
+                    return [4 /*yield*/, extractHomogeneity(normalizedGLCM2)];
+                case 8:
+                    homogeneity2 = _a.sent();
+                    return [4 /*yield*/, extractEntropy(normalizedGLCM2)];
                 case 9:
+                    entropy2 = _a.sent();
+                    console.log(contrast2);
+                    console.log(homogeneity2);
+                    console.log(entropy2);
+                    console.log("similarity");
+                    console.log((0, CosineSimiliarity_1.default)(vectorTexture(normalizedGLCM), vectorTexture(normalizedGLCM2)));
+                    return [3 /*break*/, 11];
+                case 10:
                     error_1 = _a.sent();
                     console.error('Error occurred:', error_1);
-                    return [3 /*break*/, 10];
-                case 10: return [2 /*return*/];
+                    return [3 /*break*/, 11];
+                case 11: return [2 /*return*/];
             }
         });
     });

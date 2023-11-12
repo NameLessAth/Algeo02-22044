@@ -1,8 +1,9 @@
-import { extractContrast, createGLCM } from '../src/src/functions/TextureRetrieval';
 const { createCanvas, loadImage } = require('canvas');
 import * as math from 'mathjs';
+import CosineSimiliarity from '../src/src/functions/CosineSimiliarity';
 
 type Matrix = number[][];
+type Vector = [number, number, number];
 
 async function ImageToMatrix(imagePath: String): Promise<Matrix> {
     const canvas: Any = createCanvas(256, 256);
@@ -78,7 +79,6 @@ function createCoOccurrenceMatrix(matrix: Matrix, distanceI: number, distanceJ: 
             }
         }
     }
-
     return coOccurrenceMatrix;
 }
 
@@ -104,7 +104,7 @@ function symmetricMatrix(matrix1: Matrix, matrix2: Matrix): Matrix{
     return symmetricMatrix;
 }
 
-function rgbToGrayScale(r, g, b) {
+function rgbToGrayScale(r: number, g: number, b: number) {
     return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
@@ -113,20 +113,64 @@ function determinant(Matrix: Matrix): number{
     return resultDet;
 }
 
-function normalizeMatrix(matrix: Matrix): Matrix {
-    const numRows = matrix.length;
-    const numCols = matrix[0].length;
+async function normalizeMatrix(file: String): Promise<Matrix> {
 
-    const totalSum = matrix.reduce((sum, row) => sum + row.reduce((rowSum, value) => rowSum + value, 0), 0);
-    const normalized = matrix.map(row => row.map(value => value / totalSum));
+    let matrixRaw = await ImageToMatrix(file);
+    let grayMatrix = await GrayscaleMatrix(matrixRaw);
+    let quantifizeMatrix =  quantizeMatrix(grayMatrix);
+    let GLCM =  createCoOccurrenceMatrix(quantifizeMatrix, 0, 1, 0); 
+    let GLCMTranspose =  transposeMatrix(GLCM);
+    let resultGLCM =  addMatrix(GLCM, GLCMTranspose);
+
+    const numRows: number = resultGLCM.length;
+    const numCols: number = resultGLCM[0].length;
+
+    const totalSum = resultGLCM.reduce((sum, row) => sum + row.reduce((rowSum, value) => rowSum + value, 0), 0);
+    const normalized = resultGLCM.map(row => row.map(value => value / totalSum));
 
     return normalized;
 }
 
-function contrastMatrix(matrix: Matrix): Matrix{
-    
+function extractContrast(matrix: Matrix): number{
+    let contrast: number = 0; 
+    for(let i = 0; i < matrix.length; ++i){
+        for(let j = 0; j < matrix[i].length; ++j){
+            contrast += matrix[i][j] * Math.pow((i - j), 2);
+        }
+    }
+
+    return contrast;
 }
 
+function extractHomogeneity(matrix: Matrix): number{
+    let result: number = 0;
+    for(let i = 0; i < matrix.length; ++i){
+        for(let j = 0; j < matrix[i].length; ++j){
+            result += matrix[i][j] / (1 + Math.pow(matrix[i][j], 2));
+        }
+    }
+    return result
+}
+
+function extractEntropy(matrix: Matrix): number{
+    let result: number = 0; 
+    for(let i = 0; i < matrix.length; ++i){
+        for(let j = 0; j < matrix[i].length; ++j){
+            if(matrix[i][j] !== 0){
+                result += matrix[i][j] * Math.log(matrix[i][j]);
+            }
+        }
+    }
+    return -result; 
+}
+
+function vectorTexture(matrix: Matrix): Vector{
+    const contrast: number = extractContrast(matrix); 
+    const homogeneity: number = extractHomogeneity(matrix); 
+    const entropy: number = extractEntropy(matrix); 
+
+    return [contrast, homogeneity, entropy];
+}
 
 function printMatrix(matrix: Matrix){
     matrix.forEach(row => {
@@ -142,35 +186,41 @@ async function processImage() {
         [2, 3, 2]   
     ]
     try {
-        const testFile = '0-resize.jpg';
-        const matrixRaw = await ImageToMatrix(testFile);
-        const grayMatrix = await GrayscaleMatrix(matrixRaw);
-        const quantifizeMatrix = await quantizeMatrix(grayMatrix);
-        console.log(matrixRaw[100]);
-        console.log(grayMatrix[100]); 
-        console.log(quantifizeMatrix[100]);
-        const GLCM = await createCoOccurrenceMatrix(quantifizeMatrix, 0, 1, 0); 
-        const GLCMTranspose = await transposeMatrix(GLCM);
-        const resultGLCM = await addMatrix(GLCM, GLCMTranspose);
-        const normalizedGLCM = await normalizeMatrix(resultGLCM);
-        // console.log(GLCM[100]); 
-        // console.log(GLCMTranspose[100]);
-        // console.log(resultGLCM[100]);
-        // console.log("================================GLCM================================");
-        // printMatrix(GLCM); 
-        // console.log("================================transposeMatrix================================")
-        // printMatrix(GLCMTranspose);
-        // console.log("================================result================================")
-        // printMatrix(resultGLCM);
-        // console.log("================================normalizedMatrix================================")
-        // printMatrix(normalizedGLCM);
+        const testFile = '0.jpg';
+        const testFile2 = '0-resize.jpg';
+        // const matrixRaw = await ImageToMatrix(testFile);
+        // const grayMatrix = await GrayscaleMatrix(matrixRaw);
+        // const quantifizeMatrix = await quantizeMatrix(grayMatrix);
+        // const GLCM = await createCoOccurrenceMatrix(quantifizeMatrix, 0, 1, 0); 
+        // const GLCMTranspose = await transposeMatrix(GLCM);
+        // const resultGLCM = await addMatrix(GLCM, GLCMTranspose);
+        const normalizedGLCM = await normalizeMatrix(testFile);
+        const normalizedGLCM2 = await normalizeMatrix(testFile2);
+
+        console.log("Image 1"); 
+        const contrast = await extractContrast(normalizedGLCM);
+        const homogeneity = await extractHomogeneity(normalizedGLCM);
+        const entropy = await extractEntropy(normalizedGLCM); 
+        console.log(contrast);
+        console.log(homogeneity);
+        console.log(entropy);
+
+        console.log("Image 2"); 
+        const contrast2 = await extractContrast(normalizedGLCM2); 
+        const homogeneity2 = await extractHomogeneity(normalizedGLCM2); 
+        const entropy2 = await extractEntropy(normalizedGLCM2);
+        console.log(contrast2); 
+        console.log(homogeneity2);
+        console.log(entropy2);
+
+        console.log("similarity"); 
+        console.log(CosineSimiliarity(vectorTexture(normalizedGLCM), vectorTexture(normalizedGLCM2)));
   } catch (error) {
       console.error('Error occurred:', error);
     }
 }
 
-
-const start = process.hrtime();
-processImage();
-const end = process.hrtime(start);
-console.info('Execution time: %ds %dms', end[0], end[1] / 1000000)
+    const start = process.hrtime();
+    processImage();
+    const end = process.hrtime(start);
+    console.info('Execution time: %ds %dms', end[0], end[1] / 1000000);
