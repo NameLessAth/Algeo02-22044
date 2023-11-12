@@ -37,6 +37,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var _a = require('canvas'), createCanvas = _a.createCanvas, loadImage = _a.loadImage;
+var math = require("mathjs");
 function ImageToMatrix(imagePath) {
     return __awaiter(this, void 0, void 0, function () {
         var canvas, ctx, image, imageData, data, width, height, matrix, i, row, j, position, r, g, b;
@@ -102,56 +103,108 @@ function quantizeMatrix(matrix) {
     var reshapedClean = reshaped.filter(function (row) { return row.some(function (value) { return value !== 0; }); });
     return reshapedClean;
 }
-function createGLCM(matrix, dx, dy, levels) {
-    var numRows = matrix.length;
-    var numCols = matrix[0].length;
-    var glcm = new Array(levels).fill(0).map(function () { return new Array(levels).fill(0); });
-    for (var i = 0; i < numRows; i++) {
-        for (var j = 0; j < numCols; j++) {
-            var current = matrix[i][j];
-            var nextRow = i + dx;
-            var nextCol = j + dy;
-            if (nextRow >= 0 && nextRow < numRows && nextCol >= 0 && nextCol < numCols) {
-                var neighbor = matrix[nextRow][nextCol];
-                glcm[current][neighbor] += 1;
+function createCoOccurrenceMatrix(matrix, distanceI, distanceJ, angle) {
+    var coOccurrenceMatrix = new Array(matrix.length + 1).fill(0).map(function () { return new Array(matrix.length + 1).fill(0); });
+    for (var i = 0; i < matrix.length; i++) {
+        for (var j = 0; j < matrix[i].length; j++) {
+            var currentValue = matrix[i][j];
+            var neighborI = i + distanceI;
+            var neighborJ = j + distanceJ;
+            if (neighborJ < matrix[i].length) {
+                var neighborValue = matrix[neighborI][neighborJ];
+                coOccurrenceMatrix[currentValue][neighborValue]++;
             }
         }
     }
-    return glcm;
+    return coOccurrenceMatrix;
 }
-function processImage() {
-    return __awaiter(this, void 0, void 0, function () {
-        var testFile, matrixRaw, grayMatrix, quantifizeMatrix, GLCM, error_1;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    _a.trys.push([0, 5, , 6]);
-                    testFile = '0-resize.jpg';
-                    return [4 /*yield*/, ImageToMatrix(testFile)];
-                case 1:
-                    matrixRaw = _a.sent();
-                    return [4 /*yield*/, GrayscaleMatrix(matrixRaw)];
-                case 2:
-                    grayMatrix = _a.sent();
-                    return [4 /*yield*/, quantizeMatrix(grayMatrix)];
-                case 3:
-                    quantifizeMatrix = _a.sent();
-                    return [4 /*yield*/, createGLCM(quantifizeMatrix, 1, 1, 256)];
-                case 4:
-                    GLCM = _a.sent();
-                    console.log(GLCM);
-                    return [3 /*break*/, 6];
-                case 5:
-                    error_1 = _a.sent();
-                    console.error('Error occurred:', error_1);
-                    return [3 /*break*/, 6];
-                case 6: return [2 /*return*/];
-            }
-        });
-    });
+function transposeMatrix(srcMatrix) {
+    return srcMatrix[0].map(function (col, i) { return srcMatrix.map(function (row) { return row[i]; }); });
+}
+function addMatrix(matrix1, matrix2) {
+    var resultMatrix = [];
+    for (var i = 0; i < matrix1.length; ++i) {
+        resultMatrix[i] = [];
+        for (var j = 0; j < matrix1[i].length; ++j) {
+            resultMatrix[i][j] = matrix1[i][j] + matrix2[i][j];
+        }
+    }
+    return resultMatrix;
+}
+function symmetricMatrix(matrix1, matrix2) {
+    var symmetricMatrix = addMatrix(matrix1, matrix2);
+    return symmetricMatrix;
 }
 function rgbToGrayScale(r, g, b) {
     return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+function determinant(Matrix) {
+    var resultDet = math.det(Matrix);
+    return resultDet;
+}
+function normalizeMatrix(matrix) {
+    var numRows = matrix.length;
+    var numCols = matrix[0].length;
+    var totalSum = matrix.reduce(function (sum, row) { return sum + row.reduce(function (rowSum, value) { return rowSum + value; }, 0); }, 0);
+    var normalized = matrix.map(function (row) { return row.map(function (value) { return value / totalSum; }); });
+    return normalized;
+}
+function contrastMatrix(matrix) {
+}
+function printMatrix(matrix) {
+    matrix.forEach(function (row) {
+        console.log(row.join(', '));
+    });
+    console.log('\n');
+}
+function processImage() {
+    return __awaiter(this, void 0, void 0, function () {
+        var matrixTest, testFile, matrixRaw, grayMatrix, quantifizeMatrix, GLCM, GLCMTranspose, resultGLCM, normalizedGLCM, error_1;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    matrixTest = [
+                        [0, 0, 1],
+                        [1, 2, 3],
+                        [2, 3, 2]
+                    ];
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, 9, , 10]);
+                    testFile = '0-resize.jpg';
+                    return [4 /*yield*/, ImageToMatrix(testFile)];
+                case 2:
+                    matrixRaw = _a.sent();
+                    return [4 /*yield*/, GrayscaleMatrix(matrixRaw)];
+                case 3:
+                    grayMatrix = _a.sent();
+                    return [4 /*yield*/, quantizeMatrix(grayMatrix)];
+                case 4:
+                    quantifizeMatrix = _a.sent();
+                    console.log(matrixRaw[100]);
+                    console.log(grayMatrix[100]);
+                    console.log(quantifizeMatrix[100]);
+                    return [4 /*yield*/, createCoOccurrenceMatrix(quantifizeMatrix, 0, 1, 0)];
+                case 5:
+                    GLCM = _a.sent();
+                    return [4 /*yield*/, transposeMatrix(GLCM)];
+                case 6:
+                    GLCMTranspose = _a.sent();
+                    return [4 /*yield*/, addMatrix(GLCM, GLCMTranspose)];
+                case 7:
+                    resultGLCM = _a.sent();
+                    return [4 /*yield*/, normalizeMatrix(resultGLCM)];
+                case 8:
+                    normalizedGLCM = _a.sent();
+                    return [3 /*break*/, 10];
+                case 9:
+                    error_1 = _a.sent();
+                    console.error('Error occurred:', error_1);
+                    return [3 /*break*/, 10];
+                case 10: return [2 /*return*/];
+            }
+        });
+    });
 }
 var start = process.hrtime();
 processImage();
