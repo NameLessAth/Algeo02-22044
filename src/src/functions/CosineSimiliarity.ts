@@ -1,4 +1,4 @@
-type Vector = [number, number, number];
+type Vector = number[];
 
 function panjangVector(V: Vector): number {
     let sum = 0;
