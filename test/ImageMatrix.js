@@ -37,7 +37,8 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var _a = require('canvas'), createCanvas = _a.createCanvas, loadImage = _a.loadImage;
-var math = require("mathjs");
+var fs = require('fs').promises;
+var path = require('path');
 var CosineSimiliarity_1 = require("../src/src/functions/CosineSimiliarity");
 function ImageToMatrix(imagePath) {
     return __awaiter(this, void 0, void 0, function () {
@@ -111,9 +112,12 @@ function createCoOccurrenceMatrix(matrix, distanceI, distanceJ, angle) {
             var currentValue = matrix[i][j];
             var neighborI = i + distanceI;
             var neighborJ = j + distanceJ;
-            if (neighborJ < matrix[i].length) {
+            if (neighborI >= 0 && neighborI < matrix.length && neighborJ >= 0 && neighborJ < matrix[i].length) {
                 var neighborValue = matrix[neighborI][neighborJ];
-                coOccurrenceMatrix[currentValue][neighborValue]++;
+                if (currentValue >= 0 && currentValue < coOccurrenceMatrix.length &&
+                    neighborValue >= 0 && neighborValue < coOccurrenceMatrix[currentValue].length) {
+                    coOccurrenceMatrix[currentValue][neighborValue]++;
+                }
             }
         }
     }
@@ -138,10 +142,6 @@ function symmetricMatrix(matrix1, matrix2) {
 }
 function rgbToGrayScale(r, g, b) {
     return 0.299 * r + 0.587 * g + 0.114 * b;
-}
-function determinant(Matrix) {
-    var resultDet = math.det(Matrix);
-    return resultDet;
 }
 function normalizeMatrix(file) {
     return __awaiter(this, void 0, void 0, function () {
@@ -201,12 +201,6 @@ function vectorTexture(matrix) {
     var homogeneity = extractHomogeneity(matrix);
     var entropy = extractEntropy(matrix);
     return [contrast, homogeneity, entropy];
-}
-function printMatrix(matrix) {
-    matrix.forEach(function (row) {
-        console.log(row.join(', '));
-    });
-    console.log('\n');
 }
 function processImage() {
     return __awaiter(this, void 0, void 0, function () {
@@ -268,7 +262,46 @@ function processImage() {
         });
     });
 }
+function processAllImage(fileCheck, folder) {
+    return __awaiter(this, void 0, void 0, function () {
+        var checkFile, files, _i, files_1, file, filePath, isFile, testFile, CosineSimilarity, fileName;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, normalizeMatrix(fileCheck)];
+                case 1:
+                    checkFile = _a.sent();
+                    return [4 /*yield*/, fs.readdir(folder)];
+                case 2:
+                    files = (_a.sent()).sort(function (a, b) {
+                        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+                    });
+                    _i = 0, files_1 = files;
+                    _a.label = 3;
+                case 3:
+                    if (!(_i < files_1.length)) return [3 /*break*/, 7];
+                    file = files_1[_i];
+                    filePath = path.join(folder, file);
+                    return [4 /*yield*/, fs.stat(filePath)];
+                case 4:
+                    isFile = (_a.sent()).isFile();
+                    if (!isFile) return [3 /*break*/, 6];
+                    return [4 /*yield*/, normalizeMatrix(filePath)];
+                case 5:
+                    testFile = _a.sent();
+                    CosineSimilarity = (0, CosineSimiliarity_1.default)(vectorTexture(checkFile), vectorTexture(testFile));
+                    fileName = path.basename(filePath);
+                    console.log("Cosine similarity between ".concat(fileCheck, " & ").concat(fileName, ": ").concat(CosineSimilarity));
+                    _a.label = 6;
+                case 6:
+                    _i++;
+                    return [3 /*break*/, 3];
+                case 7: return [2 /*return*/];
+            }
+        });
+    });
+}
 var start = process.hrtime();
-processImage();
-var end = process.hrtime(start);
-console.info('Execution time: %ds %dms', end[0], end[1] / 1000000);
+processAllImage('0.jpg', '../src/public/dataset').then(function () {
+    var end = process.hrtime(start);
+    console.info('Execution time: %ds %dms', end[0], end[1] / 1000000);
+});

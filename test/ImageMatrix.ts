@@ -1,4 +1,6 @@
 const { createCanvas, loadImage } = require('canvas');
+const fs = require('fs').promises;
+const path = require('path');
 import * as math from 'mathjs';
 import CosineSimiliarity from '../src/src/functions/CosineSimiliarity';
 
@@ -70,17 +72,22 @@ function createCoOccurrenceMatrix(matrix: Matrix, distanceI: number, distanceJ: 
         for (let j = 0; j < matrix[i].length; j++) {
             const currentValue = matrix[i][j];
 
-            const neighborI: number = i + distanceI
+            const neighborI: number = i + distanceI;
             const neighborJ: number = j + distanceJ;
 
-            if (neighborJ < matrix[i].length) {
+            if (neighborI >= 0 && neighborI < matrix.length && neighborJ >= 0 && neighborJ < matrix[i].length) {
                 const neighborValue = matrix[neighborI][neighborJ];
-                coOccurrenceMatrix[currentValue][neighborValue]++;
+                
+                if (currentValue >= 0 && currentValue < coOccurrenceMatrix.length &&
+                    neighborValue >= 0 && neighborValue < coOccurrenceMatrix[currentValue].length) {
+                    coOccurrenceMatrix[currentValue][neighborValue]++;
+                }
             }
         }
     }
     return coOccurrenceMatrix;
 }
+
 
 function transposeMatrix(srcMatrix: Matrix){
     return srcMatrix[0].map((col, i) => srcMatrix.map(row => row[i]));   
@@ -105,11 +112,6 @@ function symmetricMatrix(matrix1: Matrix, matrix2: Matrix): Matrix{
 
 function rgbToGrayScale(r: number, g: number, b: number) {
     return 0.299 * r + 0.587 * g + 0.114 * b;
-}
-
-function determinant(Matrix: Matrix): number{
-    const resultDet: number = math.det(Matrix)
-    return resultDet;
 }
 
 async function normalizeMatrix(file: String): Promise<Matrix> {
@@ -137,7 +139,6 @@ function extractContrast(matrix: Matrix): number{
             contrast += matrix[i][j] * Math.pow((i - j), 2);
         }
     }
-
     return contrast;
 }
 
@@ -169,13 +170,6 @@ function vectorTexture(matrix: Matrix): Vector{
     const entropy: number = extractEntropy(matrix); 
 
     return [contrast, homogeneity, entropy];
-}
-
-function printMatrix(matrix: Matrix){
-    matrix.forEach(row => {
-        console.log(row.join(', '));
-    });
-    console.log('\n');
 }
 
 async function processImage() {
@@ -219,7 +213,33 @@ async function processImage() {
     }
 }
 
-    const start = process.hrtime();
-    processImage();
+
+async function processAllImage(fileCheck: String , folder:String) {
+    const checkFile = await normalizeMatrix(fileCheck); 
+
+    const files = (await fs.readdir(folder)).sort((a, b) => {
+        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+    });
+    for(const file of files){
+        const filePath = path.join(folder, file);
+        const isFile = (await fs.stat(filePath)).isFile(); 
+
+        if(isFile){
+            const testFile = await normalizeMatrix(filePath);
+            let CosineSimilarity = CosineSimiliarity(vectorTexture(checkFile), vectorTexture(testFile));
+
+            const fileName = path.basename(filePath);
+
+            console.log(`Cosine similarity between ${fileCheck} & ${fileName}: ${CosineSimilarity}`);
+        }
+    }
+}
+
+const start = process.hrtime();
+processAllImage('0.jpg', '../src/public/dataset').then(() => {
     const end = process.hrtime(start);
     console.info('Execution time: %ds %dms', end[0], end[1] / 1000000);
+});
+
+
+
