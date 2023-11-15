@@ -4,14 +4,15 @@ const path = require('path');
 import * as math from 'mathjs';
 import CosineSimiliarity from '../src/src/functions/CosineSimiliarity';
 
-type Matrix = number[][];
+type VectorRGB = [number, number, number];
+type Matrix = VectorRGB[][];
 type Vector = [number, number, number];
 
 async function ImageToMatrix(imagePath: String): Promise<Matrix> {
-    const canvas: Any = createCanvas(256, 256);
-    const ctx: Any = canvas.getContext('2d');
+    const canvas: any = createCanvas(256, 256);
+    const ctx: any = canvas.getContext('2d');
 
-    const image: Any = await loadImage(imagePath);
+    const image: any = await loadImage(imagePath);
     ctx.drawImage(image, 0, 0, 256, 256);
 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -23,10 +24,12 @@ async function ImageToMatrix(imagePath: String): Promise<Matrix> {
         const row = new Array(width);
         for (let j = 0; j < width; j++) {
             const position = (i * width + j) * 4;
-            const r = data[position];
-            const g = data[position + 1];
-            const b = data[position + 2];
-            row[j] = [r, g, b];
+            const VectorRaw: VectorRGB = [
+                data[position],
+                data[position + 1],
+                data[position + 2],
+            ];
+            row[j] = VectorRaw;
         }
         matrix[i] = row;
     }

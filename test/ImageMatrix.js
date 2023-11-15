@@ -42,7 +42,7 @@ var path = require('path');
 var CosineSimiliarity_1 = require("../src/src/functions/CosineSimiliarity");
 function ImageToMatrix(imagePath) {
     return __awaiter(this, void 0, void 0, function () {
-        var canvas, ctx, image, imageData, data, width, height, matrix, i, row, j, position, r, g, b;
+        var canvas, ctx, image, imageData, data, width, height, matrix, i, row, j, position, VectorRaw;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -59,10 +59,13 @@ function ImageToMatrix(imagePath) {
                         row = new Array(width);
                         for (j = 0; j < width; j++) {
                             position = (i * width + j) * 4;
-                            r = data[position];
-                            g = data[position + 1];
-                            b = data[position + 2];
-                            row[j] = [r, g, b];
+                            VectorRaw = [
+                                data[position],
+                                data[position + 1],
+                                data[position + 2],
+                            ];
+                            // row[j] = VectorRaw;
+                            row.push([VectorRaw]);
                         }
                         matrix[i] = row;
                     }
