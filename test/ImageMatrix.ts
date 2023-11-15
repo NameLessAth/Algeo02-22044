@@ -2,14 +2,16 @@ const { createCanvas, loadImage } = require('canvas');
 import * as math from 'mathjs';
 import CosineSimiliarity from '../src/src/functions/CosineSimiliarity';
 
-type Matrix = number[][];
+
 type Vector = [number, number, number];
+type Matrix = number[][];
+type MatrixVector = Vector[][];
 
-async function ImageToMatrix(imagePath: String): Promise<Matrix> {
-    const canvas: Any = createCanvas(256, 256);
-    const ctx: Any = canvas.getContext('2d');
+async function ImageToMatrix(imagePath: String): Promise<MatrixVector> {
+    const canvas: any = createCanvas(256, 256);
+    const ctx: any = canvas.getContext('2d');
 
-    const image: Any = await loadImage(imagePath);
+    const image: any = await loadImage(imagePath);
     ctx.drawImage(image, 0, 0, 256, 256);
 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -31,12 +33,12 @@ async function ImageToMatrix(imagePath: String): Promise<Matrix> {
     return matrix;
 }
 
-async function GrayscaleMatrix(matrixRGB: Matrix): Promise<Matrix> {
-    const GrayscaleMatrix = [];
+async function GrayscaleMatrix(matrixRGB: MatrixVector): Promise<Matrix> {
+    const GrayscaleMatrix:number[][] = [];
     for (let i = 0; i < matrixRGB.length; i++) {
         const row: number[] = [];
         for (let j = 0; j < matrixRGB[i].length; j++) {
-            const [r, g, b] = matrixRGB[i][j];
+            const [r, g, b]= matrixRGB[i][j];
             const gray = rgbToGrayScale(r, g, b);
             row.push(gray);
         }
@@ -46,10 +48,10 @@ async function GrayscaleMatrix(matrixRGB: Matrix): Promise<Matrix> {
 }
 
 function quantizeMatrix(matrix: Matrix) {
-    const flatMatrix: Matrix = matrix.flat();
+    const flatMatrix: number[] = matrix.flat();
     const min = Math.min(...flatMatrix);
     const max = Math.max(...flatMatrix);
-    const GrayscaleInt: Matrix = flatMatrix.map(value => {
+    const GrayscaleInt: number[] = flatMatrix.map(value => {
         return Math.round((value - min) * (255 / (max - min)));
     });
 
@@ -103,7 +105,7 @@ function symmetricMatrix(matrix1: Matrix, matrix2: Matrix): Matrix{
     return symmetricMatrix;
 }
 
-function rgbToGrayScale(r: number, g: number, b: number) {
+function rgbToGrayScale(r: number, g: number, b: number):number {
     return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 

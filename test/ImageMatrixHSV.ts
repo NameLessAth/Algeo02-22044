@@ -1,5 +1,4 @@
-import CosineSimiliarity from '../src/src/functions/CosineSimiliarity';
-import { extractContrast } from '../src/src/functions/TextureRetrieval';
+import CosineSimiliarity from '../src/src/functions/CosineSimiliarity'
 const { createCanvas, loadImage } = require('canvas');
 type Vector3 = [number, number, number];
 type MatrixHSV = Vector3[][]
@@ -54,7 +53,7 @@ async function extractImageToMatrix(imagePath: String): Promise<MatrixHSV> {
       const position = (i * width + j) * 4;
       const [r, g, b, a] = data.slice(position, position + 4);
 
-      row.push(RGBtoHSV([r,g,b])); 
+      row.push([r,g,b]); 
     }
     matrix.push(row); 
   }
@@ -118,14 +117,27 @@ async function process(database:MatrixHSV[]) {
         return false;
     }
 }
+
+async function debugPhoto() {
+  try{
+    const matrixRaw = await extractImageToMatrix('../src/public/dataset/4503.jpg');
+    const matrixRaw2 = await extractImageToMatrix('0.jpg');
+    console.log("kecocokannya adalah = ",compare2ImageHSV(matrixRaw, matrixRaw2));
+  }catch{
+    console.log(`error ler`);
+  }
+}
 async function startRun() {
   const database:MatrixHSV[] = [];
-  
-  for (let i = 0; i <= 4737; i++) database.push(await extractImageToMatrix(`../src/public/dataset/${i}.jpg`));
-  
-  const start = performance.now();
-  const berhasil:boolean = await process(database);
-  console.log(`program executed for ${(performance.now()-start)/1000} seconds`);
+  const debugBool:boolean = false;
+  if (!debugBool){
+    for (let i = 0; i <= 4737; i++) database.push(await extractImageToMatrix(`../src/public/dataset/${i}.jpg`));
+    const start = performance.now();
+    const berhasil:boolean = await process(database);
+    console.log(`program executed for ${(performance.now()-start)/1000} seconds`);
+  } else {
+    await debugPhoto();
+  }
 }
 
 startRun();

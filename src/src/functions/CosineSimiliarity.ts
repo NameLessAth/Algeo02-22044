@@ -1,4 +1,4 @@
-type Vector = number[];
+type Vector = [number, number, number];
 
 function panjangVector(V: Vector): number {
     let sum = 0;
@@ -10,6 +10,10 @@ function panjangVector(V: Vector): number {
 
 function CosineSimiliarity(V1: Vector, V2: Vector): number {
     let dotProd = 0;
+    if ((panjangVector(V1)===0)||(panjangVector(V2)===0)){
+        if (panjangVector(V1) === panjangVector(V2)) return 1;
+        else return 0;
+    }
 
     V1.forEach((elmt, index) => {
         dotProd += elmt * V2[index];
