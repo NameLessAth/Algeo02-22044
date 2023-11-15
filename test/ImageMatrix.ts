@@ -86,7 +86,6 @@ function transposeMatrix(srcMatrix: Matrix){
     return srcMatrix[0].map((col, i) => srcMatrix.map(row => row[i]));   
 }
 
-
 function addMatrix(matrix1: Matrix, matrix2: Matrix): Matrix{
     const resultMatrix: Matrix = [];
     
@@ -187,7 +186,7 @@ async function processImage() {
     ]
     try {
         const testFile = '0.jpg';
-        const testFile2 = '0-resize.jpg';
+        const testFile2 = '1.jpg';
         // const matrixRaw = await ImageToMatrix(testFile);
         // const grayMatrix = await GrayscaleMatrix(matrixRaw);
         // const quantifizeMatrix = await quantizeMatrix(grayMatrix);

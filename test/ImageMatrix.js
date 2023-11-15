@@ -194,7 +194,7 @@ function extractEntropy(matrix) {
             }
         }
     }
-    return result;
+    return -result;
 }
 function vectorTexture(matrix) {
     var contrast = extractContrast(matrix);
@@ -223,7 +223,7 @@ function processImage() {
                 case 1:
                     _a.trys.push([1, 10, , 11]);
                     testFile = '0.jpg';
-                    testFile2 = '0-resize.jpg';
+                    testFile2 = '1.jpg';
                     return [4 /*yield*/, normalizeMatrix(testFile)];
                 case 2:
                     normalizedGLCM = _a.sent();
