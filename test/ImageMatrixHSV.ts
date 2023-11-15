@@ -2,7 +2,7 @@ import CosineSimiliarity from '../src/src/functions/CosineSimiliarity';
 import { extractContrast } from '../src/src/functions/TextureRetrieval';
 const { createCanvas, loadImage } = require('canvas');
 type Vector3 = [number, number, number];
-type Matrix = number[][]
+type MatrixHSV = Vector3[][]
 
 function CMax(R:any, G:any, B:any):any {
     if ((R>=G)&&(R>=B)) return R;
@@ -36,7 +36,7 @@ function RGBtoHSV(V1:Vector3):Vector3 {
     return [hue, saturation, value];
 }
 
-async function extractImageToMatrix(imagePath: String): Promise<number[][][]> {
+async function extractImageToMatrix(imagePath: String): Promise<MatrixHSV> {
   const canvas = createCanvas(4, 4); 
   const ctx = canvas.getContext('2d');
 
@@ -61,7 +61,7 @@ async function extractImageToMatrix(imagePath: String): Promise<number[][][]> {
   return matrix;
 }
 
-function compare2ImageHSV(MatImg1:number[][][], MatImg2:number[][][]){
+function compare2ImageHSV(MatImg1:MatrixHSV, MatImg2:MatrixHSV){
   let cosSimTot:number = 0;
   MatImg1.forEach((elmt1, indexRow) =>{
     elmt1.forEach((elmt2, indexCol) =>{
@@ -71,22 +71,61 @@ function compare2ImageHSV(MatImg1:number[][][], MatImg2:number[][][]){
   return cosSimTot/(16);
 }
 
-
-
-async function process() {
-    try{
-        const matrixRaw = extractImageToMatrix('0-resize.jpg');
-        const matrixRaw2 = extractImageToMatrix('0.jpg');
-        const matrixRaw3 = extractImageToMatrix('1.jpg');
-        const matrixRaw4 = extractImageToMatrix('126.jpg');
-        const matrixRaw5 = extractImageToMatrix('sun.jpg');
-        const matrixRaw6 = extractImageToMatrix('white.jpg');
-        console.log(compare2ImageHSV((await matrixRaw5), (await matrixRaw6)))
-    } catch{
-        console.log("error");
-    }
+function insertSort(StartArr:[number, number][], inputElmt:[number, number]):[number, number][]{
+  let stopIterate:boolean = false;
+  let i:number = 0; let j:number;
+  while ((i < StartArr.length)&&(!stopIterate)) {
+    if (inputElmt[1] > StartArr[i][1]) stopIterate = true;
+    else i++;
+  } if (stopIterate){
+    j = i;
+    while(j < StartArr.length) StartArr[j+1] = StartArr[j];
+  } StartArr[i] = inputElmt;
+  return StartArr;
 }
 
-const start = performance.now();
-process();
-console.log(`program executed for ${performance.now()-start} miliseconds`);
+function bubbleSort(StartArr:[number, number][]):[number, number][]{
+  let n:number = StartArr.length;
+  let temp:[number, number] = [0,0];
+  let swapped:boolean = false;
+  for (let i = 0; i < n-1; i++){
+    swapped = false;
+    for (let j = 0; j < n - (i+1); j++){
+      if (StartArr[1][j] < StartArr[1][j+1]){
+        temp = StartArr[j];
+        StartArr[j] = StartArr[j+1];
+        StartArr[j+1] = temp;
+      }
+    } 
+    if (!swapped) break;
+  }
+
+  return StartArr;
+}
+
+async function process(database:MatrixHSV[]) {
+    try{
+        const matrixRaw2 = extractImageToMatrix('0.jpg');
+        var databasecocok:[number, number][] = [];
+        for (let i = 0; i < database.length; i++){
+          let cocok = compare2ImageHSV(await matrixRaw2, database[i]);
+          databasecocok.push([i, cocok]);
+          console.log(`${i}.jpg memiliki ${cocok*100}% kecocokan`);
+        } databasecocok =  bubbleSort(databasecocok);
+        return true;
+    } catch{
+        console.log("error");
+        return false;
+    }
+}
+async function startRun() {
+  const database:MatrixHSV[] = [];
+  
+  for (let i = 0; i <= 4737; i++) database.push(await extractImageToMatrix(`../src/public/dataset/${i}.jpg`));
+  
+  const start = performance.now();
+  const berhasil:boolean = await process(database);
+  console.log(`program executed for ${(performance.now()-start)/1000} seconds`);
+}
+
+startRun();
