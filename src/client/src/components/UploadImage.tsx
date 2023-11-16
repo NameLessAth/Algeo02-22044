@@ -9,7 +9,6 @@ function UploadImage() {
     if (event.target.files) {
       setSelectedFile(event.target.files[0]);
 
-      // Display the selected image
       if (event.target.files[0]) {
         const url = URL.createObjectURL(event.target.files[0]);
         setImageUrl(url);

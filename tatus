@@ -1,0 +1,83 @@
+[33mcommit 7c20f7001df2181b6bde3e496f06f5a638a4dcaf[m[33m ([m[1;36mHEAD -> [m[1;32mrefactor/website[m[33m, [m[1;31morigin/refactor/website[m[33m)[m
+Author: Julian Caleb Simandjuntak <juliancaleb88@gmail.com>
+Date:   Fri Nov 10 08:46:02 2023 +0700
+
+    style: styling website
+
+[33mcommit bced486b654666a41d3790edcb53d1837a46d3c8[m
+Author: Julian Caleb Simandjuntak <juliancaleb88@gmail.com>
+Date:   Fri Nov 10 02:41:20 2023 +0700
+
+    refactor : add existing code
+
+[33mcommit d38947c55f1acae9b04fca2494b4bc3d49450097[m
+Author: Julian Caleb Simandjuntak <juliancaleb88@gmail.com>
+Date:   Fri Nov 10 02:34:44 2023 +0700
+
+    refactor: website
+
+[33mcommit 71b45e73e760fa4e29015859432f1a4bb7d9b68d[m[33m ([m[1;31morigin/indra[m[33m, [m[1;32mmain[m[33m, [m[1;32mindra[m[33m)[m
+Author: NameLess <daffakusumamulia@gmail.com>
+Date:   Thu Nov 9 21:34:51 2023 +0700
+
+    test: imagematrixhsv
+
+[33mcommit c93e7d13dfc57bfff61ab1162978a3cf40f702c0[m
+Author: InTheRain <indrswara@gmail.com>
+Date:   Thu Nov 9 21:21:48 2023 +0700
+
+    feat: progress texture images
+
+[33mcommit 90b475431109ec5e87c89f961a7cb3304af0cd11[m
+Author: InTheRain <indrswara@gmail.com>
+Date:   Wed Nov 8 21:59:21 2023 +0700
+
+    feat: add image texture function
+
+[33mcommit 67df0f984bc3938f31d0dc136c2f3d15a6c5dd07[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mfeat/trial-react-website[m[33m, [m[1;32mfeat/backend[m[33m)[m
+Merge: 351ede8 82a573d
+Author: NameLess <daffakusumamulia@gmail.com>
+Date:   Sat Nov 4 23:58:12 2023 +0700
+
+    Merge pull request #2 from NameLessAth/atha
+    
+    feat: CosineSimiliarity function
+
+[33mcommit 82a573d9ba80f215a6dcfd8364e42069843c43e8[m[33m ([m[1;31morigin/atha[m[33m)[m
+Author: NameLess <daffakusumamulia@gmail.com>
+Date:   Sat Nov 4 23:57:15 2023 +0700
+
+    feat: CosineSimiliarity function
+
+[33mcommit 351ede85015f1adf2d82828ac532ab1148662356[m
+Merge: 05889c0 b1a5c8c
+Author: Julian Caleb Simandjuntak <juliancaleb88@gmail.com>
+Date:   Sat Nov 4 06:35:08 2023 +0700
+
+    Merge pull request #1 from NameLessAth/feat/trial-react-website
+    
+    Feat/trial react website
+
+[33mcommit b1a5c8c5bc28e95319703d05e366d8bf221362c2[m[33m ([m[1;31morigin/feat/trial-react-website[m[33m)[m
+Author: Julian Caleb Simandjuntak <juliancaleb88@gmail.com>
+Date:   Sat Nov 4 06:28:13 2023 +0700
+
+    feat: gallery
+
+[33mcommit b868ca89c316159c7fbcf4ace349687c41663b9c[m
+Author: Julian Caleb Simandjuntak <juliancaleb88@gmail.com>
+Date:   Thu Nov 2 08:03:36 2023 +0700
+
+    feat: image uploader
+
+[33mcommit 05889c0e9ab569380dd7d3ac2726ea1453ea3976[m[33m ([m[1;32mfeat/trial-next-website[m[33m)[m
+Author: NameLess <daffakusumamulia@gmail.com>
+Date:   Tue Oct 31 22:34:25 2023 +0700
+
+    docs: Update README.md
+
+[33mcommit a8d797e38409fe43d70e40b12c517d02b376943d[m[33m ([m[1;32mfeat/trial-website[m[33m)[m
+Author: NameLess <119790212+NameLessAth@users.noreply.github.com>
+Date:   Tue Oct 31 13:34:28 2023 +0700
+
+    Initial commit
