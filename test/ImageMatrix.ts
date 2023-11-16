@@ -230,7 +230,7 @@ async function process(database:Vector[], file: string) {
         for (let i = 0; i < database.length; i++){
           let simillar = await compareGrayscale(vector, database[i]);
           databaseSimillar.push([i, simillar]);
-          console.log(`${i}.jpg memiliki ${simillar*100}% kecocokan`);
+        //   console.log(`${i}.jpg memiliki ${simillar*100}% kecocokan`);
         } 
         // databaseSimillar =  bubbleSort(databaseSimillar);
         return true;

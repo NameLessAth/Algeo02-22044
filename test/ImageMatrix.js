@@ -288,7 +288,6 @@ function process(database, file) {
                 case 5:
                     simillar = _b.sent();
                     databaseSimillar.push([i, simillar]);
-                    console.log("".concat(i, ".jpg memiliki ").concat(simillar * 100, "% kecocokan"));
                     _b.label = 6;
                 case 6:
                     i++;
