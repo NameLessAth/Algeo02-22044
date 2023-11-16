@@ -208,46 +208,48 @@ async function processAllImage(fileCheck: string , folder:string) {
     }
 }
 
-async function compareGrayscale(matrix1: MatrixVector, matrix2: MatrixVector): Promise<number>{
-    const nMatrix1 = await normalizeMatrix(matrix1); 
-    const nMatrix2 = await normalizeMatrix(matrix2);
+async function compareGrayscale(matrix1: Matrix, matrix2: Matrix): Promise<number>{
+    // const nMatrix1 = await normalizeMatrix(matrix1); 
+    // const nMatrix2 = await normalizeMatrix(matrix2);
 
-    const vector1 = vectorTexture(nMatrix1); 
-    const vector2 = vectorTexture(nMatrix2);
+    const vector1 = vectorTexture(matrix1); 
+    const vector2 = vectorTexture(matrix2);
 
     const Simillarity = CosineSimiliarity(vector1, vector2); 
 
     return Simillarity;
 }
 
-function bubbleSort(StartArr:[number, number][]):[number, number][]{
-  let n:number = StartArr.length;
-  let temp:[number, number] = [0,0];
-  let swapped:boolean = false;
-  for (let i = 0; i < n-1; i++){
-    swapped = false;
-    for (let j = 0; j < n - (i+1); j++){
-      if (StartArr[1][j] < StartArr[1][j+1]){
-        temp = StartArr[j];
-        StartArr[j] = StartArr[j+1];
-        StartArr[j+1] = temp;
-      }
-    } 
-    if (!swapped) break;
-  }
+// function bubbleSort(StartArr:[number, number][]):[number, number][]{
+//   let n:number = StartArr.length;
+//   let temp:[number, number] = [0,0];
+//   let swapped:boolean = false;
+//   for (let i = 0; i < n-1; i++){
+//     swapped = false;
+//     for (let j = 0; j < n - (i+1); j++){
+//       if (StartArr[1][j] < StartArr[1][j+1]){
+//         temp = StartArr[j];
+//         StartArr[j] = StartArr[j+1];
+//         StartArr[j+1] = temp;
+//       }
+//     } 
+//     if (!swapped) break;
+//   }
 
-  return StartArr;
-}
+//   return StartArr;
+// }
 
-async function process(database:MatrixVector[], file: string) {
+async function process(database:Matrix[], file: string) {
     try{
-        const matrixRaw2 = ImageToMatrix(file);
+        const matrixRaw2 = await ImageToMatrix(file);
+        const vectorRaw = await normalizeMatrix(matrixRaw2);
         var databaseSimillar:[number, number][] = [];
         for (let i = 0; i < database.length; i++){
-          let simillar = await compareGrayscale(await matrixRaw2, database[i]);
+          let simillar = await compareGrayscale(vectorRaw, database[i]);
           databaseSimillar.push([i, simillar]);
           console.log(`${i}.jpg memiliki ${simillar*100}% kecocokan`);
-        } databaseSimillar =  bubbleSort(databaseSimillar);
+        } 
+        // databaseSimillar =  bubbleSort(databaseSimillar);
         return true;
     } catch{
         console.log("error");
@@ -256,7 +258,7 @@ async function process(database:MatrixVector[], file: string) {
 }
 
 async function startRun(fileSrc: string, folder:string) {
-    const database:MatrixVector[] = [];
+    const database:Matrix[] = [];
     const files = (await fs.readdir(folder)).sort((a, b) => {
         return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
     });
@@ -266,7 +268,8 @@ async function startRun(fileSrc: string, folder:string) {
 
         if(isFile){
             const fileName = path.basename(filePath);
-            database.push(await ImageToMatrix(`../src/public/dataset/${fileName}`));
+            const data = await ImageToMatrix(`../src/public/dataset/${fileName}`);
+            database.push(await normalizeMatrix(data));
         }
     }
 
