@@ -254,76 +254,60 @@ function processAllImage(fileCheck, folder) {
         });
     });
 }
-function compareGrayscale(matrix1, matrix2) {
+function compareGrayscale(vector1, vector2) {
     return __awaiter(this, void 0, void 0, function () {
-        var vector1, vector2, Simillarity;
+        var Simillarity;
         return __generator(this, function (_a) {
-            vector1 = vectorTexture(matrix1);
-            vector2 = vectorTexture(matrix2);
             Simillarity = (0, CosineSimiliarity_1.default)(vector1, vector2);
             return [2 /*return*/, Simillarity];
         });
     });
 }
-// function bubbleSort(StartArr:[number, number][]):[number, number][]{
-//   let n:number = StartArr.length;
-//   let temp:[number, number] = [0,0];
-//   let swapped:boolean = false;
-//   for (let i = 0; i < n-1; i++){
-//     swapped = false;
-//     for (let j = 0; j < n - (i+1); j++){
-//       if (StartArr[1][j] < StartArr[1][j+1]){
-//         temp = StartArr[j];
-//         StartArr[j] = StartArr[j+1];
-//         StartArr[j+1] = temp;
-//       }
-//     } 
-//     if (!swapped) break;
-//   }
-//   return StartArr;
-// }
 function process(database, file) {
     return __awaiter(this, void 0, void 0, function () {
-        var matrixRaw2, vectorRaw, databaseSimillar, i, simillar, _a;
+        var matrixRaw2, vectorRaw, vector, databaseSimillar, i, simillar, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    _b.trys.push([0, 7, , 8]);
+                    _b.trys.push([0, 8, , 9]);
                     return [4 /*yield*/, ImageToMatrix(file)];
                 case 1:
                     matrixRaw2 = _b.sent();
                     return [4 /*yield*/, normalizeMatrix(matrixRaw2)];
                 case 2:
                     vectorRaw = _b.sent();
+                    return [4 /*yield*/, vectorTexture(vectorRaw)];
+                case 3:
+                    vector = _b.sent();
                     databaseSimillar = [];
                     i = 0;
-                    _b.label = 3;
-                case 3:
-                    if (!(i < database.length)) return [3 /*break*/, 6];
-                    return [4 /*yield*/, compareGrayscale(vectorRaw, database[i])];
+                    _b.label = 4;
                 case 4:
+                    if (!(i < database.length)) return [3 /*break*/, 7];
+                    return [4 /*yield*/, compareGrayscale(vector, database[i])];
+                case 5:
                     simillar = _b.sent();
                     databaseSimillar.push([i, simillar]);
                     console.log("".concat(i, ".jpg memiliki ").concat(simillar * 100, "% kecocokan"));
-                    _b.label = 5;
-                case 5:
+                    _b.label = 6;
+                case 6:
                     i++;
-                    return [3 /*break*/, 3];
-                case 6: 
+                    return [3 /*break*/, 4];
+                case 7: 
                 // databaseSimillar =  bubbleSort(databaseSimillar);
                 return [2 /*return*/, true];
-                case 7:
+                case 8:
                     _a = _b.sent();
                     console.log("error");
                     return [2 /*return*/, false];
-                case 8: return [2 /*return*/];
+                case 9: return [2 /*return*/];
             }
         });
     });
 }
 function startRun(fileSrc, folder) {
     return __awaiter(this, void 0, void 0, function () {
-        var database, files, _i, files_2, file, filePath, isFile, fileName, data, _a, _b, start, berhasil;
+        var database, files, _i, files_2, file, filePath, isFile, fileName, data, vector, _a, _b, start, berhasil;
         return __generator(this, function (_c) {
             switch (_c.label) {
                 case 0:
@@ -336,29 +320,32 @@ function startRun(fileSrc, folder) {
                     _i = 0, files_2 = files;
                     _c.label = 2;
                 case 2:
-                    if (!(_i < files_2.length)) return [3 /*break*/, 7];
+                    if (!(_i < files_2.length)) return [3 /*break*/, 8];
                     file = files_2[_i];
                     filePath = path.join(folder, file);
                     return [4 /*yield*/, fs.stat(filePath)];
                 case 3:
                     isFile = (_c.sent()).isFile();
-                    if (!isFile) return [3 /*break*/, 6];
+                    if (!isFile) return [3 /*break*/, 7];
                     fileName = path.basename(filePath);
                     return [4 /*yield*/, ImageToMatrix("../src/public/dataset/".concat(fileName))];
                 case 4:
                     data = _c.sent();
-                    _b = (_a = database).push;
                     return [4 /*yield*/, normalizeMatrix(data)];
                 case 5:
-                    _b.apply(_a, [_c.sent()]);
-                    _c.label = 6;
+                    vector = _c.sent();
+                    _b = (_a = database).push;
+                    return [4 /*yield*/, vectorTexture(vector)];
                 case 6:
+                    _b.apply(_a, [_c.sent()]);
+                    _c.label = 7;
+                case 7:
                     _i++;
                     return [3 /*break*/, 2];
-                case 7:
+                case 8:
                     start = performance.now();
                     return [4 /*yield*/, process(database, fileSrc)];
-                case 8:
+                case 9:
                     berhasil = _c.sent();
                     console.log("program executed for ".concat((performance.now() - start) / 1000, " seconds"));
                     return [2 /*return*/];
