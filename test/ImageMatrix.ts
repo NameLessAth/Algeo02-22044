@@ -1,7 +1,8 @@
 const { createCanvas, loadImage } = require('canvas');
-import * as math from 'mathjs';
+const fs = require('fs').promises;
+const path = require('path');
 import CosineSimiliarity from '../src/src/functions/CosineSimiliarity';
-
+import * as math from 'mathjs';
 
 type Vector = [number, number, number];
 type Matrix = number[][];
@@ -72,12 +73,16 @@ function createCoOccurrenceMatrix(matrix: Matrix, distanceI: number, distanceJ: 
         for (let j = 0; j < matrix[i].length; j++) {
             const currentValue = matrix[i][j];
 
-            const neighborI: number = i + distanceI
+            const neighborI: number = i + distanceI;
             const neighborJ: number = j + distanceJ;
 
-            if (neighborJ < matrix[i].length) {
+            if (neighborI >= 0 && neighborI < matrix.length && neighborJ >= 0 && neighborJ < matrix[i].length) {
                 const neighborValue = matrix[neighborI][neighborJ];
-                coOccurrenceMatrix[currentValue][neighborValue]++;
+                
+                if (currentValue >= 0 && currentValue < coOccurrenceMatrix.length &&
+                    neighborValue >= 0 && neighborValue < coOccurrenceMatrix[currentValue].length) {
+                    coOccurrenceMatrix[currentValue][neighborValue]++;
+                }
             }
         }
     }
@@ -114,9 +119,7 @@ function determinant(Matrix: Matrix): number{
     return resultDet;
 }
 
-async function normalizeMatrix(file: String): Promise<Matrix> {
-
-    let matrixRaw = await ImageToMatrix(file);
+async function normalizeMatrix(matrixRaw: MatrixVector): Promise<Matrix> {
     let grayMatrix = await GrayscaleMatrix(matrixRaw);
     let quantifizeMatrix =  quantizeMatrix(grayMatrix);
     let GLCM =  createCoOccurrenceMatrix(quantifizeMatrix, 0, 1, 0); 
@@ -180,48 +183,140 @@ function printMatrix(matrix: Matrix){
     console.log('\n');
 }
 
-async function processImage() {
-    const matrixTest: Matrix = [
-        [0, 0, 1], 
-        [1, 2, 3], 
-        [2, 3, 2]   
-    ]
-    try {
-        const testFile = '0.jpg';
-        const testFile2 = '1.jpg';
-        // const matrixRaw = await ImageToMatrix(testFile);
-        // const grayMatrix = await GrayscaleMatrix(matrixRaw);
-        // const quantifizeMatrix = await quantizeMatrix(grayMatrix);
-        // const GLCM = await createCoOccurrenceMatrix(quantifizeMatrix, 0, 1, 0); 
-        // const GLCMTranspose = await transposeMatrix(GLCM);
-        // const resultGLCM = await addMatrix(GLCM, GLCMTranspose);
-        const normalizedGLCM = await normalizeMatrix(testFile);
-        const normalizedGLCM2 = await normalizeMatrix(testFile2);
 
-        console.log("Image 1"); 
-        const contrast = await extractContrast(normalizedGLCM);
-        const homogeneity = await extractHomogeneity(normalizedGLCM);
-        const entropy = await extractEntropy(normalizedGLCM); 
-        console.log(contrast);
-        console.log(homogeneity);
-        console.log(entropy);
 
-        console.log("Image 2"); 
-        const contrast2 = await extractContrast(normalizedGLCM2); 
-        const homogeneity2 = await extractHomogeneity(normalizedGLCM2); 
-        const entropy2 = await extractEntropy(normalizedGLCM2);
-        console.log(contrast2); 
-        console.log(homogeneity2);
-        console.log(entropy2);
+async function processAllImage(fileCheck: string , folder:string) {
+    const matrixRaw = await ImageToMatrix(fileCheck);
+    const checkFile = await normalizeMatrix(matrixRaw); 
 
-        console.log("similarity"); 
-        console.log(CosineSimiliarity(vectorTexture(normalizedGLCM), vectorTexture(normalizedGLCM2)));
-  } catch (error) {
-      console.error('Error occurred:', error);
+    const files = (await fs.readdir(folder)).sort((a, b) => {
+        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+    });
+    for(const file of files){
+        const filePath = path.join(folder, file);
+        const isFile = (await fs.stat(filePath)).isFile(); 
+
+        if(isFile){
+            const matrixRawFile = await ImageToMatrix(filePath); 
+            const testFile = await normalizeMatrix(matrixRawFile);
+            let CosineSimilarity = CosineSimiliarity(vectorTexture(checkFile), vectorTexture(testFile));
+
+            const fileName = path.basename(filePath);
+
+            console.log(`Cosine similarity between ${fileCheck} & ${fileName}: ${CosineSimilarity}`);
+        }
     }
 }
 
-    const start = process.hrtime();
-    processImage();
-    const end = process.hrtime(start);
-    console.info('Execution time: %ds %dms', end[0], end[1] / 1000000);
+async function compareGrayscale(matrix1: MatrixVector, matrix2: MatrixVector): Promise<number>{
+    const nMatrix1 = await normalizeMatrix(matrix1); 
+    const nMatrix2 = await normalizeMatrix(matrix2);
+
+    const vector1 = vectorTexture(nMatrix1); 
+    const vector2 = vectorTexture(nMatrix2);
+
+    const Simillarity = CosineSimiliarity(vector1, vector2); 
+
+    return Simillarity;
+}
+
+function bubbleSort(StartArr:[number, number][]):[number, number][]{
+  let n:number = StartArr.length;
+  let temp:[number, number] = [0,0];
+  let swapped:boolean = false;
+  for (let i = 0; i < n-1; i++){
+    swapped = false;
+    for (let j = 0; j < n - (i+1); j++){
+      if (StartArr[1][j] < StartArr[1][j+1]){
+        temp = StartArr[j];
+        StartArr[j] = StartArr[j+1];
+        StartArr[j+1] = temp;
+      }
+    } 
+    if (!swapped) break;
+  }
+
+  return StartArr;
+}
+
+async function process(database:MatrixVector[], file: string) {
+    try{
+        const matrixRaw2 = ImageToMatrix(file);
+        var databaseSimillar:[number, number][] = [];
+        for (let i = 0; i < database.length; i++){
+          let simillar = await compareGrayscale(await matrixRaw2, database[i]);
+          databaseSimillar.push([i, simillar]);
+          console.log(`${i}.jpg memiliki ${simillar*100}% kecocokan`);
+        } databaseSimillar =  bubbleSort(databaseSimillar);
+        return true;
+    } catch{
+        console.log("error");
+        return false;
+    }
+}
+
+async function startRun(fileSrc: string, folder:string) {
+    const database:MatrixVector[] = [];
+    const files = (await fs.readdir(folder)).sort((a, b) => {
+        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+    });
+    for(const file of files){
+        const filePath = path.join(folder, file);
+        const isFile = (await fs.stat(filePath)).isFile(); 
+
+        if(isFile){
+            const fileName = path.basename(filePath);
+            database.push(await ImageToMatrix(`../src/public/dataset/${fileName}`));
+        }
+    }
+
+    const start = performance.now();
+    const berhasil:boolean = await process(database, fileSrc);
+    console.log(`program executed for ${(performance.now()-start)/1000} seconds`);
+}
+
+startRun('0.jpg', '../src/public/dataset')
+
+// processAllImage('0.jpg', '../src/public/dataset');
+
+
+// async function processImage() {
+//     const matrixTest: Matrix = [
+//         [0, 0, 1], 
+//         [1, 2, 3], 
+//         [2, 3, 2]   
+//     ]
+//     try {
+//         const testFile = '0.jpg';
+//         const testFile2 = '1.jpg';
+//         // const matrixRaw = await ImageToMatrix(testFile);
+//         // const grayMatrix = await GrayscaleMatrix(matrixRaw);
+//         // const quantifizeMatrix = await quantizeMatrix(grayMatrix);
+//         // const GLCM = await createCoOccurrenceMatrix(quantifizeMatrix, 0, 1, 0); 
+//         // const GLCMTranspose = await transposeMatrix(GLCM);
+//         // const resultGLCM = await addMatrix(GLCM, GLCMTranspose);
+//         const normalizedGLCM = await normalizeMatrix(testFile);
+//         const normalizedGLCM2 = await normalizeMatrix(testFile2);
+
+//         console.log("Image 1"); 
+//         const contrast = await extractContrast(normalizedGLCM);
+//         const homogeneity = await extractHomogeneity(normalizedGLCM);
+//         const entropy = await extractEntropy(normalizedGLCM); 
+//         console.log(contrast);
+//         console.log(homogeneity);
+//         console.log(entropy);
+
+//         console.log("Image 2"); 
+//         const contrast2 = await extractContrast(normalizedGLCM2); 
+//         const homogeneity2 = await extractHomogeneity(normalizedGLCM2); 
+//         const entropy2 = await extractEntropy(normalizedGLCM2);
+//         console.log(contrast2); 
+//         console.log(homogeneity2);
+//         console.log(entropy2);
+
+//         console.log("similarity"); 
+//         console.log(CosineSimiliarity(vectorTexture(normalizedGLCM), vectorTexture(normalizedGLCM2)));
+//   } catch (error) {
+//       console.error('Error occurred:', error);
+//     }
+// }
