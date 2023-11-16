@@ -1,14 +1,14 @@
 const { createCanvas, loadImage } = require('canvas');
 const fs = require('fs').promises;
 const path = require('path');
-import * as math from 'mathjs';
 import CosineSimiliarity from '../src/src/functions/CosineSimiliarity';
+import * as math from 'mathjs';
 
-type VectorRGB = [number, number, number];
-type Matrix = VectorRGB[][];
 type Vector = [number, number, number];
+type Matrix = number[][];
+type MatrixVector = Vector[][];
 
-async function ImageToMatrix(imagePath: String): Promise<Matrix> {
+async function ImageToMatrix(imagePath: String): Promise<MatrixVector> {
     const canvas: any = createCanvas(256, 256);
     const ctx: any = canvas.getContext('2d');
 
@@ -24,24 +24,22 @@ async function ImageToMatrix(imagePath: String): Promise<Matrix> {
         const row = new Array(width);
         for (let j = 0; j < width; j++) {
             const position = (i * width + j) * 4;
-            const VectorRaw: VectorRGB = [
-                data[position],
-                data[position + 1],
-                data[position + 2],
-            ];
-            row[j] = VectorRaw;
+            const r = data[position];
+            const g = data[position + 1];
+            const b = data[position + 2];
+            row[j] = [r, g, b];
         }
         matrix[i] = row;
     }
     return matrix;
 }
 
-async function GrayscaleMatrix(matrixRGB: Matrix): Promise<Matrix> {
-    const GrayscaleMatrix = [];
+async function GrayscaleMatrix(matrixRGB: MatrixVector): Promise<Matrix> {
+    const GrayscaleMatrix:number[][] = [];
     for (let i = 0; i < matrixRGB.length; i++) {
         const row: number[] = [];
         for (let j = 0; j < matrixRGB[i].length; j++) {
-            const [r, g, b] = matrixRGB[i][j];
+            const [r, g, b]= matrixRGB[i][j];
             const gray = rgbToGrayScale(r, g, b);
             row.push(gray);
         }
@@ -51,10 +49,10 @@ async function GrayscaleMatrix(matrixRGB: Matrix): Promise<Matrix> {
 }
 
 function quantizeMatrix(matrix: Matrix) {
-    const flatMatrix: Matrix = matrix.flat();
+    const flatMatrix: number[] = matrix.flat();
     const min = Math.min(...flatMatrix);
     const max = Math.max(...flatMatrix);
-    const GrayscaleInt: Matrix = flatMatrix.map(value => {
+    const GrayscaleInt: number[] = flatMatrix.map(value => {
         return Math.round((value - min) * (255 / (max - min)));
     });
 
@@ -91,7 +89,6 @@ function createCoOccurrenceMatrix(matrix: Matrix, distanceI: number, distanceJ: 
     return coOccurrenceMatrix;
 }
 
-
 function transposeMatrix(srcMatrix: Matrix){
     return srcMatrix[0].map((col, i) => srcMatrix.map(row => row[i]));   
 }
@@ -113,13 +110,16 @@ function symmetricMatrix(matrix1: Matrix, matrix2: Matrix): Matrix{
     return symmetricMatrix;
 }
 
-function rgbToGrayScale(r: number, g: number, b: number) {
+function rgbToGrayScale(r: number, g: number, b: number):number {
     return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
-async function normalizeMatrix(file: String): Promise<Matrix> {
+function determinant(Matrix: Matrix): number{
+    const resultDet: number = math.det(Matrix)
+    return resultDet;
+}
 
-    let matrixRaw = await ImageToMatrix(file);
+async function normalizeMatrix(matrixRaw: MatrixVector): Promise<Matrix> {
     let grayMatrix = await GrayscaleMatrix(matrixRaw);
     let quantifizeMatrix =  quantizeMatrix(grayMatrix);
     let GLCM =  createCoOccurrenceMatrix(quantifizeMatrix, 0, 1, 0); 
@@ -142,6 +142,7 @@ function extractContrast(matrix: Matrix): number{
             contrast += matrix[i][j] * Math.pow((i - j), 2);
         }
     }
+
     return contrast;
 }
 
@@ -175,50 +176,18 @@ function vectorTexture(matrix: Matrix): Vector{
     return [contrast, homogeneity, entropy];
 }
 
-async function processImage() {
-    const matrixTest: Matrix = [
-        [0, 0, 1], 
-        [1, 2, 3], 
-        [2, 3, 2]   
-    ]
-    try {
-        const testFile = '0.jpg';
-        const testFile2 = '1.jpg';
-        // const matrixRaw = await ImageToMatrix(testFile);
-        // const grayMatrix = await GrayscaleMatrix(matrixRaw);
-        // const quantifizeMatrix = await quantizeMatrix(grayMatrix);
-        // const GLCM = await createCoOccurrenceMatrix(quantifizeMatrix, 0, 1, 0); 
-        // const GLCMTranspose = await transposeMatrix(GLCM);
-        // const resultGLCM = await addMatrix(GLCM, GLCMTranspose);
-        const normalizedGLCM = await normalizeMatrix(testFile);
-        const normalizedGLCM2 = await normalizeMatrix(testFile2);
-
-        console.log("Image 1"); 
-        const contrast = await extractContrast(normalizedGLCM);
-        const homogeneity = await extractHomogeneity(normalizedGLCM);
-        const entropy = await extractEntropy(normalizedGLCM); 
-        console.log(contrast);
-        console.log(homogeneity);
-        console.log(entropy);
-
-        console.log("Image 2"); 
-        const contrast2 = await extractContrast(normalizedGLCM2); 
-        const homogeneity2 = await extractHomogeneity(normalizedGLCM2); 
-        const entropy2 = await extractEntropy(normalizedGLCM2);
-        console.log(contrast2); 
-        console.log(homogeneity2);
-        console.log(entropy2);
-
-        console.log("similarity"); 
-        console.log(CosineSimiliarity(vectorTexture(normalizedGLCM), vectorTexture(normalizedGLCM2)));
-  } catch (error) {
-      console.error('Error occurred:', error);
-    }
+function printMatrix(matrix: Matrix){
+    matrix.forEach(row => {
+        console.log(row.join(', '));
+    });
+    console.log('\n');
 }
 
 
-async function processAllImage(fileCheck: String , folder:String) {
-    const checkFile = await normalizeMatrix(fileCheck); 
+
+async function processAllImage(fileCheck: string , folder:string) {
+    const matrixRaw = await ImageToMatrix(fileCheck);
+    const checkFile = await normalizeMatrix(matrixRaw); 
 
     const files = (await fs.readdir(folder)).sort((a, b) => {
         return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
@@ -228,7 +197,8 @@ async function processAllImage(fileCheck: String , folder:String) {
         const isFile = (await fs.stat(filePath)).isFile(); 
 
         if(isFile){
-            const testFile = await normalizeMatrix(filePath);
+            const matrixRawFile = await ImageToMatrix(filePath); 
+            const testFile = await normalizeMatrix(matrixRawFile);
             let CosineSimilarity = CosineSimiliarity(vectorTexture(checkFile), vectorTexture(testFile));
 
             const fileName = path.basename(filePath);
@@ -238,11 +208,52 @@ async function processAllImage(fileCheck: String , folder:String) {
     }
 }
 
-const start = process.hrtime();
-processAllImage('0.jpg', '../src/public/dataset').then(() => {
-    const end = process.hrtime(start);
-    console.info('Execution time: %ds %dms', end[0], end[1] / 1000000);
-});
+async function compareGrayscale(matrix1: Matrix, matrix2: Matrix): Promise<number>{
+    const vector1 = vectorTexture(matrix1); 
+    const vector2 = vectorTexture(matrix2);
+
+    const Simillarity = CosineSimiliarity(vector1, vector2); 
+
+    return Simillarity;
+}
 
 
+async function process(database:Matrix[], file: string) {
+    try{
+        const matrixRaw2 = await ImageToMatrix(file);
+        const vectorRaw = await normalizeMatrix(matrixRaw2);
+        var databaseSimillar:[number, number][] = [];
+        for (let i = 0; i < database.length; i++){
+          let simillar = await compareGrayscale(vectorRaw, database[i]);
+          databaseSimillar.push([i, simillar]);
+          console.log(`${i}.jpg memiliki ${simillar*100}% kecocokan`);
+        } 
+        return true;
+    } catch{
+        console.log("error");
+        return false;
+    }
+}
 
+async function startRun(fileSrc: string, folder:string) {
+    const database:Matrix[] = [];
+    const files = (await fs.readdir(folder)).sort((a, b) => {
+        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+    });
+    for(const file of files){
+        const filePath = path.join(folder, file);
+        const isFile = (await fs.stat(filePath)).isFile(); 
+
+        if(isFile){
+            const fileName = path.basename(filePath);
+            const data = await ImageToMatrix(`../src/public/dataset/${fileName}`);
+            database.push(await normalizeMatrix(data));
+        }
+    }
+
+    const start = performance.now();
+    const berhasil:boolean = await process(database, fileSrc);
+    console.log(`program executed for ${(performance.now()-start)/1000} seconds`);
+}
+
+startRun('0.jpg', '../src/public/dataset')

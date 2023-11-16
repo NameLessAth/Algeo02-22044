@@ -40,9 +40,10 @@ var _a = require('canvas'), createCanvas = _a.createCanvas, loadImage = _a.loadI
 var fs = require('fs').promises;
 var path = require('path');
 var CosineSimiliarity_1 = require("../src/src/functions/CosineSimiliarity");
+var math = require("mathjs");
 function ImageToMatrix(imagePath) {
     return __awaiter(this, void 0, void 0, function () {
-        var canvas, ctx, image, imageData, data, width, height, matrix, i, row, j, position, VectorRaw;
+        var canvas, ctx, image, imageData, data, width, height, matrix, i, row, j, position, r, g, b;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -59,13 +60,10 @@ function ImageToMatrix(imagePath) {
                         row = new Array(width);
                         for (j = 0; j < width; j++) {
                             position = (i * width + j) * 4;
-                            VectorRaw = [
-                                data[position],
-                                data[position + 1],
-                                data[position + 2],
-                            ];
-                            // row[j] = VectorRaw;
-                            row.push([VectorRaw]);
+                            r = data[position];
+                            g = data[position + 1];
+                            b = data[position + 2];
+                            row[j] = [r, g, b];
                         }
                         matrix[i] = row;
                     }
@@ -146,16 +144,17 @@ function symmetricMatrix(matrix1, matrix2) {
 function rgbToGrayScale(r, g, b) {
     return 0.299 * r + 0.587 * g + 0.114 * b;
 }
-function normalizeMatrix(file) {
+function determinant(Matrix) {
+    var resultDet = math.det(Matrix);
+    return resultDet;
+}
+function normalizeMatrix(matrixRaw) {
     return __awaiter(this, void 0, void 0, function () {
-        var matrixRaw, grayMatrix, quantifizeMatrix, GLCM, GLCMTranspose, resultGLCM, numRows, numCols, totalSum, normalized;
+        var grayMatrix, quantifizeMatrix, GLCM, GLCMTranspose, resultGLCM, numRows, numCols, totalSum, normalized;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, ImageToMatrix(file)];
+                case 0: return [4 /*yield*/, GrayscaleMatrix(matrixRaw)];
                 case 1:
-                    matrixRaw = _a.sent();
-                    return [4 /*yield*/, GrayscaleMatrix(matrixRaw)];
-                case 2:
                     grayMatrix = _a.sent();
                     quantifizeMatrix = quantizeMatrix(grayMatrix);
                     GLCM = createCoOccurrenceMatrix(quantifizeMatrix, 0, 1, 0);
@@ -205,106 +204,147 @@ function vectorTexture(matrix) {
     var entropy = extractEntropy(matrix);
     return [contrast, homogeneity, entropy];
 }
-function processImage() {
-    return __awaiter(this, void 0, void 0, function () {
-        var matrixTest, testFile, testFile2, normalizedGLCM, normalizedGLCM2, contrast, homogeneity, entropy, contrast2, homogeneity2, entropy2, error_1;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    matrixTest = [
-                        [0, 0, 1],
-                        [1, 2, 3],
-                        [2, 3, 2]
-                    ];
-                    _a.label = 1;
-                case 1:
-                    _a.trys.push([1, 10, , 11]);
-                    testFile = '0.jpg';
-                    testFile2 = '1.jpg';
-                    return [4 /*yield*/, normalizeMatrix(testFile)];
-                case 2:
-                    normalizedGLCM = _a.sent();
-                    return [4 /*yield*/, normalizeMatrix(testFile2)];
-                case 3:
-                    normalizedGLCM2 = _a.sent();
-                    console.log("Image 1");
-                    return [4 /*yield*/, extractContrast(normalizedGLCM)];
-                case 4:
-                    contrast = _a.sent();
-                    return [4 /*yield*/, extractHomogeneity(normalizedGLCM)];
-                case 5:
-                    homogeneity = _a.sent();
-                    return [4 /*yield*/, extractEntropy(normalizedGLCM)];
-                case 6:
-                    entropy = _a.sent();
-                    console.log(contrast);
-                    console.log(homogeneity);
-                    console.log(entropy);
-                    console.log("Image 2");
-                    return [4 /*yield*/, extractContrast(normalizedGLCM2)];
-                case 7:
-                    contrast2 = _a.sent();
-                    return [4 /*yield*/, extractHomogeneity(normalizedGLCM2)];
-                case 8:
-                    homogeneity2 = _a.sent();
-                    return [4 /*yield*/, extractEntropy(normalizedGLCM2)];
-                case 9:
-                    entropy2 = _a.sent();
-                    console.log(contrast2);
-                    console.log(homogeneity2);
-                    console.log(entropy2);
-                    console.log("similarity");
-                    console.log((0, CosineSimiliarity_1.default)(vectorTexture(normalizedGLCM), vectorTexture(normalizedGLCM2)));
-                    return [3 /*break*/, 11];
-                case 10:
-                    error_1 = _a.sent();
-                    console.error('Error occurred:', error_1);
-                    return [3 /*break*/, 11];
-                case 11: return [2 /*return*/];
-            }
-        });
+function printMatrix(matrix) {
+    matrix.forEach(function (row) {
+        console.log(row.join(', '));
     });
+    console.log('\n');
 }
 function processAllImage(fileCheck, folder) {
     return __awaiter(this, void 0, void 0, function () {
-        var checkFile, files, _i, files_1, file, filePath, isFile, testFile, CosineSimilarity, fileName;
+        var matrixRaw, checkFile, files, _i, files_1, file, filePath, isFile, matrixRawFile, testFile, CosineSimilarity, fileName;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, normalizeMatrix(fileCheck)];
+                case 0: return [4 /*yield*/, ImageToMatrix(fileCheck)];
                 case 1:
+                    matrixRaw = _a.sent();
+                    return [4 /*yield*/, normalizeMatrix(matrixRaw)];
+                case 2:
                     checkFile = _a.sent();
                     return [4 /*yield*/, fs.readdir(folder)];
-                case 2:
+                case 3:
                     files = (_a.sent()).sort(function (a, b) {
                         return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
                     });
                     _i = 0, files_1 = files;
-                    _a.label = 3;
-                case 3:
-                    if (!(_i < files_1.length)) return [3 /*break*/, 7];
+                    _a.label = 4;
+                case 4:
+                    if (!(_i < files_1.length)) return [3 /*break*/, 9];
                     file = files_1[_i];
                     filePath = path.join(folder, file);
                     return [4 /*yield*/, fs.stat(filePath)];
-                case 4:
-                    isFile = (_a.sent()).isFile();
-                    if (!isFile) return [3 /*break*/, 6];
-                    return [4 /*yield*/, normalizeMatrix(filePath)];
                 case 5:
+                    isFile = (_a.sent()).isFile();
+                    if (!isFile) return [3 /*break*/, 8];
+                    return [4 /*yield*/, ImageToMatrix(filePath)];
+                case 6:
+                    matrixRawFile = _a.sent();
+                    return [4 /*yield*/, normalizeMatrix(matrixRawFile)];
+                case 7:
                     testFile = _a.sent();
                     CosineSimilarity = (0, CosineSimiliarity_1.default)(vectorTexture(checkFile), vectorTexture(testFile));
                     fileName = path.basename(filePath);
                     console.log("Cosine similarity between ".concat(fileCheck, " & ").concat(fileName, ": ").concat(CosineSimilarity));
-                    _a.label = 6;
-                case 6:
+                    _a.label = 8;
+                case 8:
                     _i++;
-                    return [3 /*break*/, 3];
-                case 7: return [2 /*return*/];
+                    return [3 /*break*/, 4];
+                case 9: return [2 /*return*/];
             }
         });
     });
 }
-var start = process.hrtime();
-processAllImage('0.jpg', '../src/public/dataset').then(function () {
-    var end = process.hrtime(start);
-    console.info('Execution time: %ds %dms', end[0], end[1] / 1000000);
-});
+function compareGrayscale(matrix1, matrix2) {
+    return __awaiter(this, void 0, void 0, function () {
+        var vector1, vector2, Simillarity;
+        return __generator(this, function (_a) {
+            vector1 = vectorTexture(matrix1);
+            vector2 = vectorTexture(matrix2);
+            Simillarity = (0, CosineSimiliarity_1.default)(vector1, vector2);
+            return [2 /*return*/, Simillarity];
+        });
+    });
+}
+function process(database, file) {
+    return __awaiter(this, void 0, void 0, function () {
+        var matrixRaw2, vectorRaw, databaseSimillar, i, simillar, _a;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    _b.trys.push([0, 7, , 8]);
+                    return [4 /*yield*/, ImageToMatrix(file)];
+                case 1:
+                    matrixRaw2 = _b.sent();
+                    return [4 /*yield*/, normalizeMatrix(matrixRaw2)];
+                case 2:
+                    vectorRaw = _b.sent();
+                    databaseSimillar = [];
+                    i = 0;
+                    _b.label = 3;
+                case 3:
+                    if (!(i < database.length)) return [3 /*break*/, 6];
+                    return [4 /*yield*/, compareGrayscale(vectorRaw, database[i])];
+                case 4:
+                    simillar = _b.sent();
+                    databaseSimillar.push([i, simillar]);
+                    console.log("".concat(i, ".jpg memiliki ").concat(simillar * 100, "% kecocokan"));
+                    _b.label = 5;
+                case 5:
+                    i++;
+                    return [3 /*break*/, 3];
+                case 6: return [2 /*return*/, true];
+                case 7:
+                    _a = _b.sent();
+                    console.log("error");
+                    return [2 /*return*/, false];
+                case 8: return [2 /*return*/];
+            }
+        });
+    });
+}
+function startRun(fileSrc, folder) {
+    return __awaiter(this, void 0, void 0, function () {
+        var database, files, _i, files_2, file, filePath, isFile, fileName, data, _a, _b, start, berhasil;
+        return __generator(this, function (_c) {
+            switch (_c.label) {
+                case 0:
+                    database = [];
+                    return [4 /*yield*/, fs.readdir(folder)];
+                case 1:
+                    files = (_c.sent()).sort(function (a, b) {
+                        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+                    });
+                    _i = 0, files_2 = files;
+                    _c.label = 2;
+                case 2:
+                    if (!(_i < files_2.length)) return [3 /*break*/, 7];
+                    file = files_2[_i];
+                    filePath = path.join(folder, file);
+                    return [4 /*yield*/, fs.stat(filePath)];
+                case 3:
+                    isFile = (_c.sent()).isFile();
+                    if (!isFile) return [3 /*break*/, 6];
+                    fileName = path.basename(filePath);
+                    return [4 /*yield*/, ImageToMatrix("../src/public/dataset/".concat(fileName))];
+                case 4:
+                    data = _c.sent();
+                    _b = (_a = database).push;
+                    return [4 /*yield*/, normalizeMatrix(data)];
+                case 5:
+                    _b.apply(_a, [_c.sent()]);
+                    _c.label = 6;
+                case 6:
+                    _i++;
+                    return [3 /*break*/, 2];
+                case 7:
+                    start = performance.now();
+                    return [4 /*yield*/, process(database, fileSrc)];
+                case 8:
+                    berhasil = _c.sent();
+                    console.log("program executed for ".concat((performance.now() - start) / 1000, " seconds"));
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
+startRun('0.jpg', '../src/public/dataset');
