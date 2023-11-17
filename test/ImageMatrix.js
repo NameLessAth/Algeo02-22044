@@ -40,7 +40,6 @@ var _a = require('canvas'), createCanvas = _a.createCanvas, loadImage = _a.loadI
 var fs = require('fs').promises;
 var path = require('path');
 var CosineSimiliarity_1 = require("../src/src/functions/CosineSimiliarity");
-var math = require("mathjs");
 function ImageToMatrix(imagePath) {
     return __awaiter(this, void 0, void 0, function () {
         var canvas, ctx, image, imageData, data, width, height, matrix, i, row, j, position, r, g, b;
@@ -63,30 +62,12 @@ function ImageToMatrix(imagePath) {
                             r = data[position];
                             g = data[position + 1];
                             b = data[position + 2];
-                            row[j] = [r, g, b];
+                            row.push(rgbToGrayScale(r, g, b));
                         }
                         matrix[i] = row;
                     }
                     return [2 /*return*/, matrix];
             }
-        });
-    });
-}
-function GrayscaleMatrix(matrixRGB) {
-    return __awaiter(this, void 0, void 0, function () {
-        var GrayscaleMatrix, i, row, j, _a, r, g, b, gray;
-        return __generator(this, function (_b) {
-            GrayscaleMatrix = [];
-            for (i = 0; i < matrixRGB.length; i++) {
-                row = [];
-                for (j = 0; j < matrixRGB[i].length; j++) {
-                    _a = matrixRGB[i][j], r = _a[0], g = _a[1], b = _a[2];
-                    gray = rgbToGrayScale(r, g, b);
-                    row.push(gray);
-                }
-                GrayscaleMatrix.push(row);
-            }
-            return [2 /*return*/, GrayscaleMatrix];
         });
     });
 }
@@ -103,8 +84,7 @@ function quantizeMatrix(matrix) {
             reshaped[i][j] = GrayscaleInt[i * 256 + j];
         }
     }
-    var reshapedClean = reshaped.filter(function (row) { return row.some(function (value) { return value !== 0; }); });
-    return reshapedClean;
+    return reshaped;
 }
 function createCoOccurrenceMatrix(matrix, distanceI, distanceJ, angle) {
     var coOccurrenceMatrix = new Array(matrix.length + 1).fill(0).map(function () { return new Array(matrix.length + 1).fill(0); });
@@ -141,16 +121,12 @@ function symmetricMatrix(matrix1, matrix2) {
 function rgbToGrayScale(r, g, b) {
     return 0.299 * r + 0.587 * g + 0.114 * b;
 }
-function determinant(Matrix) {
-    var resultDet = math.det(Matrix);
-    return resultDet;
-}
 function normalizeMatrix(matrixRaw) {
     return __awaiter(this, void 0, void 0, function () {
         var grayMatrix, quantifizeMatrix, GLCM, resultGLCM, numRows, numCols, totalSum, normalized;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, GrayscaleMatrix(matrixRaw)];
+                case 0: return [4 /*yield*/, ImageToMatrix(matrixRaw)];
                 case 1:
                     grayMatrix = _a.sent();
                     quantifizeMatrix = quantizeMatrix(grayMatrix);
@@ -167,28 +143,37 @@ function normalizeMatrix(matrixRaw) {
 }
 function extractContrast(matrix) {
     var contrast = 0;
-    for (var i = 0; i < matrix.length; ++i) {
-        for (var j = 0; j < matrix[i].length; ++j) {
-            contrast += matrix[i][j] * Math.pow((i - j), 2);
+    var matrixLength = matrix.length;
+    for (var i = 0; i < matrixLength; ++i) {
+        var row = matrix[i];
+        var rowLength = row.length;
+        for (var j = 0; j < rowLength; ++j) {
+            contrast += row[j] * (Math.pow((i - j), 2));
         }
     }
     return contrast;
 }
 function extractHomogeneity(matrix) {
     var result = 0;
-    for (var i = 0; i < matrix.length; ++i) {
-        for (var j = 0; j < matrix[i].length; ++j) {
-            result += matrix[i][j] / (1 + Math.pow(matrix[i][j], 2));
+    var matrixLength = matrix.length;
+    for (var i = 0; i < matrixLength; ++i) {
+        var row = matrix[i];
+        var rowLength = row.length;
+        for (var j = 0; j < rowLength; ++j) {
+            result += row[j] / (1 + Math.pow(matrix[i][j], 2));
         }
     }
     return result;
 }
 function extractEntropy(matrix) {
     var result = 0;
-    for (var i = 0; i < matrix.length; ++i) {
-        for (var j = 0; j < matrix[i].length; ++j) {
-            if (matrix[i][j] !== 0) {
-                result += matrix[i][j] * Math.log(matrix[i][j]);
+    var matrixLength = matrix.length;
+    for (var i = 0; i < matrixLength; ++i) {
+        var row = matrix[i];
+        var rowLength = row.length;
+        for (var j = 0; j < rowLength; ++j) {
+            if (row[j] !== 0) {
+                result += row[j] * Math.log(matrix[i][j]);
             }
         }
     }
@@ -198,149 +183,75 @@ function vectorTexture(matrix) {
     var contrast = extractContrast(matrix);
     var homogeneity = extractHomogeneity(matrix);
     var entropy = extractEntropy(matrix);
-    return [contrast, homogeneity, entropy];
-}
-function printMatrix(matrix) {
-    matrix.forEach(function (row) {
-        console.log(row.join(', '));
-    });
-    console.log('\n');
-}
-function processAllImage(fileCheck, folder) {
-    return __awaiter(this, void 0, void 0, function () {
-        var matrixRaw, checkFile, files, _i, files_1, file, filePath, isFile, matrixRawFile, testFile, CosineSimilarity, fileName;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, ImageToMatrix(fileCheck)];
-                case 1:
-                    matrixRaw = _a.sent();
-                    return [4 /*yield*/, normalizeMatrix(matrixRaw)];
-                case 2:
-                    checkFile = _a.sent();
-                    return [4 /*yield*/, fs.readdir(folder)];
-                case 3:
-                    files = (_a.sent()).sort(function (a, b) {
-                        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
-                    });
-                    _i = 0, files_1 = files;
-                    _a.label = 4;
-                case 4:
-                    if (!(_i < files_1.length)) return [3 /*break*/, 9];
-                    file = files_1[_i];
-                    filePath = path.join(folder, file);
-                    return [4 /*yield*/, fs.stat(filePath)];
-                case 5:
-                    isFile = (_a.sent()).isFile();
-                    if (!isFile) return [3 /*break*/, 8];
-                    return [4 /*yield*/, ImageToMatrix(filePath)];
-                case 6:
-                    matrixRawFile = _a.sent();
-                    return [4 /*yield*/, normalizeMatrix(matrixRawFile)];
-                case 7:
-                    testFile = _a.sent();
-                    CosineSimilarity = (0, CosineSimiliarity_1.default)(vectorTexture(checkFile), vectorTexture(testFile));
-                    fileName = path.basename(filePath);
-                    console.log("Cosine similarity between ".concat(fileCheck, " & ").concat(fileName, ": ").concat(CosineSimilarity));
-                    _a.label = 8;
-                case 8:
-                    _i++;
-                    return [3 /*break*/, 4];
-                case 9: return [2 /*return*/];
-            }
-        });
-    });
-}
-function compareGrayscale(vector1, vector2) {
-    return __awaiter(this, void 0, void 0, function () {
-        var Simillarity;
-        return __generator(this, function (_a) {
-            Simillarity = (0, CosineSimiliarity_1.default)(vector1, vector2);
-            return [2 /*return*/, Simillarity];
-        });
-    });
+    var magnitude = Math.sqrt(Math.pow(contrast, 2) + Math.pow(homogeneity, 2) + Math.pow(entropy, 2));
+    return [contrast / magnitude, homogeneity / magnitude, entropy / magnitude];
 }
 function process(database, file) {
     return __awaiter(this, void 0, void 0, function () {
-        var matrixRaw2, vectorRaw, vector, databaseSimillar, i, simillar, _a;
+        var vectorRaw, vector, databaseSimillar, i, simillar, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    _b.trys.push([0, 8, , 9]);
-                    return [4 /*yield*/, ImageToMatrix(file)];
+                    _b.trys.push([0, 3, , 4]);
+                    return [4 /*yield*/, normalizeMatrix(file)];
                 case 1:
-                    matrixRaw2 = _b.sent();
-                    return [4 /*yield*/, normalizeMatrix(matrixRaw2)];
-                case 2:
                     vectorRaw = _b.sent();
                     return [4 /*yield*/, vectorTexture(vectorRaw)];
-                case 3:
+                case 2:
                     vector = _b.sent();
                     databaseSimillar = [];
-                    i = 0;
-                    _b.label = 4;
-                case 4:
-                    if (!(i < database.length)) return [3 /*break*/, 7];
-                    return [4 /*yield*/, compareGrayscale(vector, database[i])];
-                case 5:
-                    simillar = _b.sent();
-                    databaseSimillar.push([i, simillar]);
-                    _b.label = 6;
-                case 6:
-                    i++;
-                    return [3 /*break*/, 4];
-                case 7: 
-                // databaseSimillar =  bubbleSort(databaseSimillar);
-                return [2 /*return*/, true];
-                case 8:
+                    for (i = 0; i < database.length; i++) {
+                        simillar = (0, CosineSimiliarity_1.default)(vector, database[i]);
+                        ;
+                        databaseSimillar.push([i, simillar]);
+                        console.log("".concat(i, ".jpg memiliki ").concat(simillar * 100, "% kecocokan"));
+                    }
+                    return [2 /*return*/, true];
+                case 3:
                     _a = _b.sent();
                     console.log("error");
                     return [2 /*return*/, false];
-                case 9: return [2 /*return*/];
+                case 4: return [2 /*return*/];
             }
         });
     });
 }
 function startRun(fileSrc, folder) {
     return __awaiter(this, void 0, void 0, function () {
-        var database, files, _i, files_2, file, filePath, isFile, fileName, data, vector, _a, _b, start, berhasil;
+        var database, files, _i, files_1, file, filePath, isFile, fileName, vector, _a, _b, start, berhasil;
         return __generator(this, function (_c) {
             switch (_c.label) {
                 case 0:
                     database = [];
                     return [4 /*yield*/, fs.readdir(folder)];
                 case 1:
-                    files = (_c.sent()).sort(function (a, b) {
-                        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
-                    });
-                    _i = 0, files_2 = files;
+                    files = (_c.sent());
+                    _i = 0, files_1 = files;
                     _c.label = 2;
                 case 2:
-                    if (!(_i < files_2.length)) return [3 /*break*/, 8];
-                    file = files_2[_i];
+                    if (!(_i < files_1.length)) return [3 /*break*/, 7];
+                    file = files_1[_i];
                     filePath = path.join(folder, file);
                     return [4 /*yield*/, fs.stat(filePath)];
                 case 3:
                     isFile = (_c.sent()).isFile();
-                    if (!isFile) return [3 /*break*/, 7];
+                    if (!isFile) return [3 /*break*/, 6];
                     fileName = path.basename(filePath);
-                    return [4 /*yield*/, ImageToMatrix("../src/public/dataset/".concat(fileName))];
+                    return [4 /*yield*/, normalizeMatrix(filePath)];
                 case 4:
-                    data = _c.sent();
-                    return [4 /*yield*/, normalizeMatrix(data)];
-                case 5:
                     vector = _c.sent();
                     _b = (_a = database).push;
                     return [4 /*yield*/, vectorTexture(vector)];
-                case 6:
+                case 5:
                     _b.apply(_a, [_c.sent()]);
-                    _c.label = 7;
-                case 7:
+                    _c.label = 6;
+                case 6:
                     _i++;
                     return [3 /*break*/, 2];
-                case 8:
+                case 7:
                     start = performance.now();
                     return [4 /*yield*/, process(database, fileSrc)];
-                case 9:
+                case 8:
                     berhasil = _c.sent();
                     console.log("program executed for ".concat((performance.now() - start) / 1000, " seconds"));
                     return [2 /*return*/];
