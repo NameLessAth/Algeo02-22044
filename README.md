@@ -10,7 +10,6 @@ Tugas Besar 2 IF2123 Aljabar Linier dan Geometri
 Tugas besar 2 merupakan lorem ipsum 
 
 ## Branching dan Commit Messages
-
 Setiap membuat branch baru harus ambil base dari `main`. Untuk penamaan commit dan branch mengikuti format berikut.
 Format branch: `<type>/<title>`, contoh `feat/Navbar`.
 Format commit: `<type>: <subject>`, contoh `feat: add navbar`.
