@@ -179,16 +179,39 @@ function extractEntropy(matrix) {
     }
     return -result;
 }
+function calculateMean(database) {
+    var mean = [0, 0, 0];
+    var n = database.length;
+    mean[0] = database.reduce(function (acc, val) { return acc + val[0]; }, 0) / n;
+    mean[1] = database.reduce(function (acc, val) { return acc + val[1]; }, 0) / n;
+    mean[2] = database.reduce(function (acc, val) { return acc + val[2]; }, 0) / n;
+    return mean;
+}
+function calculateStandardDeviation(arr) {
+    var n = arr.length;
+    var mean0 = arr.reduce(function (acc, val) { return acc + val[0]; }, 0) / n;
+    var mean1 = arr.reduce(function (acc, val) { return acc + val[1]; }, 0) / n;
+    var mean2 = arr.reduce(function (acc, val) { return acc + val[2]; }, 0) / n;
+    var variance0 = arr.reduce(function (acc, val) { return acc + Math.pow((val[0] - mean0), 2); }, 0) / n;
+    var variance1 = arr.reduce(function (acc, val) { return acc + Math.pow((val[1] - mean1), 2); }, 0) / n;
+    var variance2 = arr.reduce(function (acc, val) { return acc + Math.pow((val[2] - mean2), 2); }, 0) / n;
+    var stdDevContrast = Math.sqrt(variance0);
+    var stdDevHomogeneity = Math.sqrt(variance1);
+    var stdDevEntropy = Math.sqrt(variance2);
+    return [stdDevContrast, stdDevHomogeneity, stdDevEntropy];
+}
 function vectorTexture(matrix) {
     var contrast = extractContrast(matrix);
     var homogeneity = extractHomogeneity(matrix);
     var entropy = extractEntropy(matrix);
-    var magnitude = Math.sqrt(Math.pow(contrast, 2) + Math.pow(homogeneity, 2) + Math.pow(entropy, 2));
-    return [contrast / magnitude, homogeneity / magnitude, entropy / magnitude];
+    return ([contrast, homogeneity, entropy]);
+}
+function textureNormalize(source, mean, std) {
+    return [(source[0] - mean[0]) / std[0], (source[1] - mean[1]) / std[1], (source[2] - mean[2]) / std[2]];
 }
 function process(database, file) {
     return __awaiter(this, void 0, void 0, function () {
-        var vectorRaw, vector, databaseSimillar, i, simillar, _a;
+        var vectorRaw, vector, mean, std, databaseSimillar, i, vectorSrc, checker, simillar, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -199,9 +222,13 @@ function process(database, file) {
                     return [4 /*yield*/, vectorTexture(vectorRaw)];
                 case 2:
                     vector = _b.sent();
+                    mean = calculateMean(database);
+                    std = calculateStandardDeviation(database);
                     databaseSimillar = [];
                     for (i = 0; i < database.length; i++) {
-                        simillar = (0, CosineSimiliarity_1.default)(vector, database[i]);
+                        vectorSrc = textureNormalize(vector, mean, std);
+                        checker = textureNormalize(database[i], mean, std);
+                        simillar = (0, CosineSimiliarity_1.default)(vectorSrc, checker);
                         ;
                         databaseSimillar.push([i, simillar]);
                         console.log("".concat(i, ".jpg memiliki ").concat(simillar * 100, "% kecocokan"));
@@ -218,41 +245,38 @@ function process(database, file) {
 }
 function startRun(fileSrc, folder) {
     return __awaiter(this, void 0, void 0, function () {
-        var database, files, _i, files_1, file, filePath, isFile, fileName, vector, _a, _b, start, berhasil;
-        return __generator(this, function (_c) {
-            switch (_c.label) {
+        var database, files, _i, files_1, file, filePath, isFile, fileName, vector, start, berhasil;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
                 case 0:
                     database = [];
                     return [4 /*yield*/, fs.readdir(folder)];
                 case 1:
-                    files = (_c.sent());
+                    files = (_a.sent());
                     _i = 0, files_1 = files;
-                    _c.label = 2;
+                    _a.label = 2;
                 case 2:
-                    if (!(_i < files_1.length)) return [3 /*break*/, 7];
+                    if (!(_i < files_1.length)) return [3 /*break*/, 6];
                     file = files_1[_i];
                     filePath = path.join(folder, file);
                     return [4 /*yield*/, fs.stat(filePath)];
                 case 3:
-                    isFile = (_c.sent()).isFile();
-                    if (!isFile) return [3 /*break*/, 6];
+                    isFile = (_a.sent()).isFile();
+                    if (!isFile) return [3 /*break*/, 5];
                     fileName = path.basename(filePath);
                     return [4 /*yield*/, normalizeMatrix(filePath)];
                 case 4:
-                    vector = _c.sent();
-                    _b = (_a = database).push;
-                    return [4 /*yield*/, vectorTexture(vector)];
+                    vector = _a.sent();
+                    database.push(vectorTexture(vector));
+                    _a.label = 5;
                 case 5:
-                    _b.apply(_a, [_c.sent()]);
-                    _c.label = 6;
-                case 6:
                     _i++;
                     return [3 /*break*/, 2];
-                case 7:
+                case 6:
                     start = performance.now();
                     return [4 /*yield*/, process(database, fileSrc)];
-                case 8:
-                    berhasil = _c.sent();
+                case 7:
+                    berhasil = _a.sent();
                     console.log("program executed for ".concat((performance.now() - start) / 1000, " seconds"));
                     return [2 /*return*/];
             }
@@ -260,3 +284,8 @@ function startRun(fileSrc, folder) {
     });
 }
 startRun('0.jpg', '../src/public/dataset');
+// untuk menghindari simillarity 99%
+// [contrastMean, homogeneityMean, entropyMean] // seluruth dataseh  MEAN
+// [contrastSTD, homogenitySTD, entropySTD] //seluruh dataset STD
+// [contrast, homogeneity, entropy] // -> rumus - MEAN /STD -> resultn
+//result1 gambar1 dan result2 gambar2

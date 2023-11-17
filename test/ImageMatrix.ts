@@ -7,6 +7,7 @@ import * as math from 'mathjs';
 type Vector = [number, number, number];
 type Matrix = number[][];
 type MatrixVector = Vector[][];
+type Array = number[];
 
 async function ImageToMatrix(imagePath: String): Promise<Matrix> {
     const canvas: any = createCanvas(256, 256);
@@ -127,7 +128,6 @@ function extractContrast(matrix: Matrix): number {
             contrast += row[j] * ((i - j) ** 2);
         }
     }
-
     return contrast;
 }
 
@@ -160,26 +160,56 @@ function extractEntropy(matrix: Matrix): number{
     return -result; 
 }
 
+function calculateMean(database: Vector[]): Vector {
+    const mean: Vector = [0, 0, 0];
+    const databaseLength: number = database.length;
+    mean[0] = database.reduce((acc: number, val: any) => acc + val[0], 0) / databaseLength;
+    mean[1] = database.reduce((acc: number, val: any) => acc + val[1], 0) / databaseLength;
+    mean[2] = database.reduce((acc: number, val: any) => acc + val[2], 0) / databaseLength;
+    return mean;
+}
+
+function calculateStandardDeviation(database: Vector[]): Vector {
+    const databaseLength: number = database.length;
+    const mean0: number = database.reduce((acc: number, val: any) => acc + val[0], 0) / databaseLength;
+    const mean1: number = database.reduce((acc: number, val: any) => acc + val[1], 0) / databaseLength;
+    const mean2: number = database.reduce((acc: number, val: any) => acc + val[2], 0) / databaseLength;
+  
+    const variance0 = database.reduce((acc: number, val: any) => acc + (val[0] - mean0) ** 2, 0) / databaseLength;
+    const variance1 = database.reduce((acc: number, val: any) => acc + (val[1] - mean1) ** 2, 0) / databaseLength;
+    const variance2 = database.reduce((acc: number, val: any) => acc + (val[2] - mean2) ** 2, 0) / databaseLength;
+  
+    const stdDevContrast: number = Math.sqrt(variance0);
+    const stdDevHomogeneity: number = Math.sqrt(variance1);
+    const stdDevEntropy: number = Math.sqrt(variance2);
+    return [stdDevContrast, stdDevHomogeneity, stdDevEntropy];
+}
+
 function vectorTexture(matrix: Matrix): Vector {
     const contrast: number = extractContrast(matrix);
     const homogeneity: number = extractHomogeneity(matrix);
     const entropy: number = extractEntropy(matrix);
-    const magnitude: number = Math.sqrt(contrast ** 2 + homogeneity ** 2 + entropy ** 2);
-
-    return [contrast/magnitude, homogeneity/magnitude, entropy /magnitude];
+    
+    return ([contrast, homogeneity, entropy]);
 }
 
+function textureNormalize(source: Vector, mean: Vector, std: Vector): Vector{
+    return [(source[0] - mean[0])/std[0], (source[1] - mean[1])/ std[1], (source[2] - mean[2])/std[2]];
+}
 
 async function process(database:Vector[], file: string) {
     try{
-        // const matrixRaw2 = await ImageToMatrix(file);
         const vectorRaw = await normalizeMatrix(file);
         const vector = await vectorTexture(vectorRaw);
+        const mean: Vector = calculateMean(database); 
+        const std: Vector = calculateStandardDeviation(database);
         var databaseSimillar:[number, number][] = [];
         for (let i = 0; i < database.length; i++){
-          let simillar = CosineSimiliarity(vector, database[i]);;
-          databaseSimillar.push([i, simillar]);
-          console.log(`${i}.jpg memiliki ${simillar*100}% kecocokan`);
+            const vectorSrc = textureNormalize(vector, mean, std);
+            const checker = textureNormalize(database[i], mean, std);
+            let simillar = CosineSimiliarity(vectorSrc, checker);;
+            databaseSimillar.push([i, simillar]);
+            console.log(`${i}.jpg memiliki ${simillar*100}% kecocokan`);
         } 
         return true;
     } catch{
@@ -194,17 +224,22 @@ async function startRun(fileSrc: string, folder:string) {
     for(const file of files){
         const filePath = path.join(folder, file);
         const isFile = (await fs.stat(filePath)).isFile(); 
-
+        
         if(isFile){
             const fileName = path.basename(filePath);
             const vector = await normalizeMatrix(filePath); 
             database.push(vectorTexture(vector));
         }
     }
-
     const start = performance.now();
     const berhasil:boolean = await process(database, fileSrc);
     console.log(`program executed for ${(performance.now()-start)/1000} seconds`);
 }
 
 startRun('0.jpg', '../src/public/dataset')
+
+// untuk menghindari simillarity 99%
+// [contrastMean, homogeneityMean, entropyMean] // seluruth dataseh  MEAN
+// [contrastSTD, homogenitySTD, entropySTD] //seluruh dataset STD
+// [contrast, homogeneity, entropy] // -> rumus - MEAN /STD -> resultn
+//result1 gambar1 dan result2 gambar2
