@@ -1,9 +1,8 @@
 import React from 'react';
 import './App.css';
 import Title from './components/Title';
-import UploadImage from './components/UploadImage';
-import UploadFolder from './components/UploadFolder';
 import WhiteBar from './components/WhiteBar';
+import UploadPage from './components/UploadPage';
 
 function App() {
   return (
@@ -12,11 +11,8 @@ function App() {
       <br />
       <WhiteBar />
       <br />
-      <UploadImage />
+      <UploadPage />
       <br />
-      <WhiteBar />
-      <br />
-      <UploadFolder />
     </div>
   );
 }
