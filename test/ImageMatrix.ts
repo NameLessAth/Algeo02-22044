@@ -89,26 +89,25 @@ function createCoOccurrenceMatrix(matrix: Matrix, distanceI: number, distanceJ: 
     return coOccurrenceMatrix;
 }
 
-function transposeMatrix(srcMatrix: Matrix){
-    return srcMatrix[0].map((col, i) => srcMatrix.map(row => row[i]));   
+function transposeMatrix(srcMatrix: Matrix): Matrix {
+    return srcMatrix[0].map((col, i) => srcMatrix.map(row => row[i]));
 }
 
-function addMatrix(matrix1: Matrix, matrix2: Matrix): Matrix{
+function symmetricMatrix(matrix1: Matrix, matrix2: Matrix): Matrix {
+
+    const transposedMatrix2 = transposeMatrix(matrix2);
     const resultMatrix: Matrix = [];
-    
-    for(let i = 0; i < matrix1.length; ++i){
-        resultMatrix[i] = []; 
-        for(let j = 0; j < matrix1[i].length; ++j){
-            resultMatrix[i][j] = matrix1[i][j] + matrix2[i][j];
+
+    for (let i = 0; i < matrix1.length; ++i) {
+        resultMatrix[i] = [];
+        for (let j = 0; j < matrix1[i].length; ++j) {
+            resultMatrix[i][j] = matrix1[i][j] + transposedMatrix2[i][j];
         }
     }
-    return resultMatrix; 
+
+    return resultMatrix;
 }
 
-function symmetricMatrix(matrix1: Matrix, matrix2: Matrix): Matrix{
-    const symmetricMatrix: Matrix = addMatrix(matrix1, matrix2);
-    return symmetricMatrix;
-}
 
 function rgbToGrayScale(r: number, g: number, b: number):number {
     return 0.299 * r + 0.587 * g + 0.114 * b;
@@ -123,8 +122,7 @@ async function normalizeMatrix(matrixRaw: MatrixVector): Promise<Matrix> {
     let grayMatrix = await GrayscaleMatrix(matrixRaw);
     let quantifizeMatrix =  quantizeMatrix(grayMatrix);
     let GLCM =  createCoOccurrenceMatrix(quantifizeMatrix, 0, 1, 0); 
-    let GLCMTranspose =  transposeMatrix(GLCM);
-    let resultGLCM =  addMatrix(GLCM, GLCMTranspose);
+    let resultGLCM =  symmetricMatrix(GLCM, transposeMatrix(GLCM));
 
     const numRows: number = resultGLCM.length;
     const numCols: number = resultGLCM[0].length;
