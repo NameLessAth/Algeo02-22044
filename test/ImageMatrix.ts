@@ -210,9 +210,12 @@ async function processAllImage(fileCheck: string , folder:string) {
     }
 }
 
-async function compareGrayscale(matrix1: Matrix, matrix2: Matrix): Promise<number>{
-    const vector1 = vectorTexture(matrix1); 
-    const vector2 = vectorTexture(matrix2);
+async function compareGrayscale(vector1: Vector, vector2: Vector): Promise<number>{
+    // const nMatrix1 = await normalizeMatrix(matrix1); 
+    // const nMatrix2 = await normalizeMatrix(matrix2);
+
+    // const vector1 = vectorTexture(matrix1); 
+    // const vector2 = vectorTexture(matrix2);
 
     const Simillarity = CosineSimiliarity(vector1, vector2); 
 
@@ -220,16 +223,18 @@ async function compareGrayscale(matrix1: Matrix, matrix2: Matrix): Promise<numbe
 }
 
 
-async function process(database:Matrix[], file: string) {
+async function process(database:Vector[], file: string) {
     try{
         const matrixRaw2 = await ImageToMatrix(file);
         const vectorRaw = await normalizeMatrix(matrixRaw2);
+        const vector = await vectorTexture(vectorRaw);
         var databaseSimillar:[number, number][] = [];
         for (let i = 0; i < database.length; i++){
-          let simillar = await compareGrayscale(vectorRaw, database[i]);
+          let simillar = await compareGrayscale(vector, database[i]);
           databaseSimillar.push([i, simillar]);
-          console.log(`${i}.jpg memiliki ${simillar*100}% kecocokan`);
+        //   console.log(`${i}.jpg memiliki ${simillar*100}% kecocokan`);
         } 
+        // databaseSimillar =  bubbleSort(databaseSimillar);
         return true;
     } catch{
         console.log("error");
@@ -238,7 +243,7 @@ async function process(database:Matrix[], file: string) {
 }
 
 async function startRun(fileSrc: string, folder:string) {
-    const database:Matrix[] = [];
+    const database:Vector[] = [];
     const files = (await fs.readdir(folder)).sort((a:any, b:any) => {
         return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
     });
@@ -249,7 +254,8 @@ async function startRun(fileSrc: string, folder:string) {
         if(isFile){
             const fileName = path.basename(filePath);
             const data = await ImageToMatrix(`../src/public/dataset/${fileName}`);
-            database.push(await normalizeMatrix(data));
+            const vector = await normalizeMatrix(data); 
+            database.push(await vectorTexture(vector));
         }
     }
 
