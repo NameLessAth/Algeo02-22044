@@ -225,7 +225,7 @@ async function process(database:Vector[], file: string) {
     try{
         const matrixRaw2 = await ImageToMatrix(file);
         const vectorRaw = await normalizeMatrix(matrixRaw2);
-        const vector = await vectorTexture(vectorRaw);
+        const vector = vectorTexture(vectorRaw);
         var databaseSimillar:[number, number][] = [];
         for (let i = 0; i < database.length; i++){
           let simillar = await compareGrayscale(vector, database[i]);
@@ -242,9 +242,10 @@ async function process(database:Vector[], file: string) {
 
 async function startRun(fileSrc: string, folder:string) {
     const database:Vector[] = [];
-    const files = (await fs.readdir(folder)).sort((a:any, b:any) => {
-        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
-    });
+    console.log("hajimero");
+    const start = performance.now();
+    const files = (await fs.readdir(folder));
+
     for(const file of files){
         const filePath = path.join(folder, file);
         const isFile = (await fs.stat(filePath)).isFile(); 
@@ -253,11 +254,10 @@ async function startRun(fileSrc: string, folder:string) {
             const fileName = path.basename(filePath);
             const data = await ImageToMatrix(`../src/public/dataset/${fileName}`);
             const vector = await normalizeMatrix(data); 
-            database.push(await vectorTexture(vector));
+            database.push(vectorTexture(vector));
         }
     }
 
-    const start = performance.now();
     const berhasil:boolean = await process(database, fileSrc);
     console.log(`program executed for ${(performance.now()-start)/1000} seconds`);
 }
