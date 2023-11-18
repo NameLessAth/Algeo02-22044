@@ -72,7 +72,7 @@ function RGBtoHSV(V1) {
     else if (max == gaksen)
         hue = (((baksen - raksen) / (max - min)) + 2) * 60;
     else
-        hue = (((raksen - gaksen) / (max - min)) + 4) / 60;
+        hue = (((raksen - gaksen) / (max - min)) + 4) * 60;
     if (max == 0)
         saturation = 0;
     else
@@ -99,7 +99,7 @@ function extractImageToMatrix(imagePath) {
                         for (j = 0; j < width; j++) {
                             position = (i * width + j) * 4;
                             _a = data.slice(position, position + 4), r = _a[0], g = _a[1], b = _a[2], a = _a[3];
-                            row.push([r, g, b]);
+                            row.push(RGBtoHSV([r, g, b]));
                         }
                         matrix.push(row);
                     }
@@ -118,39 +118,27 @@ function compare2ImageHSV(MatImg1, MatImg2) {
     return cosSimTot / (16);
 }
 function insertSort(StartArr, inputElmt) {
-    var stopIterate = false;
+    var panjang = StartArr.length;
+    if (panjang == 0) {
+        StartArr.push(inputElmt);
+        return StartArr;
+    }
     var i = 0;
-    var j;
-    while ((i < StartArr.length) && (!stopIterate)) {
+    var stopIterate = false;
+    while ((i < panjang) && (!stopIterate)) {
         if (inputElmt[1] > StartArr[i][1])
             stopIterate = true;
         else
             i++;
     }
-    if (stopIterate) {
-        j = i;
-        while (j < StartArr.length)
+    if (stopIterate == true) {
+        var j = panjang - 1;
+        while (j >= i) {
             StartArr[j + 1] = StartArr[j];
+            j--;
+        }
     }
     StartArr[i] = inputElmt;
-    return StartArr;
-}
-function bubbleSort(StartArr) {
-    var n = StartArr.length;
-    var temp = [0, 0];
-    var swapped = false;
-    for (var i = 0; i < n - 1; i++) {
-        swapped = false;
-        for (var j = 0; j < n - (i + 1); j++) {
-            if (StartArr[1][j] < StartArr[1][j + 1]) {
-                temp = StartArr[j];
-                StartArr[j] = StartArr[j + 1];
-                StartArr[j + 1] = temp;
-            }
-        }
-        if (!swapped)
-            break;
-    }
     return StartArr;
 }
 function process(query, database) {
@@ -170,13 +158,14 @@ function process(query, database) {
                     return [4 /*yield*/, matrixRaw2];
                 case 2:
                     cocok = _a.apply(void 0, [_c.sent(), database[i]]);
-                    databasecocok.push([i, cocok]);
-                    console.log("".concat(i, ".jpg memiliki ").concat(cocok * 100, "% kecocokan"));
+                    databasecocok = insertSort(databasecocok, [i, cocok * 100]);
                     _c.label = 3;
                 case 3:
                     i++;
                     return [3 /*break*/, 1];
-                case 4: return [2 /*return*/, true];
+                case 4:
+                    console.log(databasecocok);
+                    return [2 /*return*/, true];
                 case 5:
                     _b = _c.sent();
                     console.log("error");
@@ -256,4 +245,4 @@ function startRun(query, folder) {
         });
     });
 }
-startRun('0.jpg', '../src/public/dataset');
+startRun('white.jpg', '../src/public/dataset');

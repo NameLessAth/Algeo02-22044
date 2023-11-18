@@ -29,7 +29,7 @@ function RGBtoHSV(V1:Vector3):Vector3 {
     if (max == min) hue = 0;
     else if (max == raksen) hue = (((gaksen-baksen)/(max-min))%6)*60;
     else if (max == gaksen) hue = (((baksen-raksen)/(max-min))+2)*60;
-    else hue = (((raksen-gaksen)/(max-min))+4)/60;
+    else hue = (((raksen-gaksen)/(max-min))+4)*60;
     
 
     if (max == 0) saturation = 0;
@@ -55,7 +55,7 @@ async function extractImageToMatrix(imagePath: String): Promise<MatrixHSV> {
       const position = (i * width + j) * 4;
       const [r, g, b, a] = data.slice(position, position + 4);
 
-      row.push([r,g,b]); 
+      row.push(RGBtoHSV([r,g,b])); 
     }
     matrix.push(row); 
   }
@@ -73,34 +73,19 @@ function compare2ImageHSV(MatImg1:MatrixHSV, MatImg2:MatrixHSV){
 }
 
 function insertSort(StartArr:[number, number][], inputElmt:[number, number]):[number, number][]{
-  let stopIterate:boolean = false;
-  let i:number = 0; let j:number;
-  while ((i < StartArr.length)&&(!stopIterate)) {
+  let panjang:number = StartArr.length;
+  if (panjang == 0){
+    StartArr.push(inputElmt); return StartArr
+  } let i:number = 0; let stopIterate:boolean = false; 
+  while ((i < panjang)&&(!stopIterate)) {
     if (inputElmt[1] > StartArr[i][1]) stopIterate = true;
     else i++;
-  } if (stopIterate){
-    j = i;
-    while(j < StartArr.length) StartArr[j+1] = StartArr[j];
-  } StartArr[i] = inputElmt;
-  return StartArr;
-}
-
-function bubbleSort(StartArr:[number, number][]):[number, number][]{
-  let n:number = StartArr.length;
-  let temp:[number, number] = [0,0];
-  let swapped:boolean = false;
-  for (let i = 0; i < n-1; i++){
-    swapped = false;
-    for (let j = 0; j < n - (i+1); j++){
-      if (StartArr[1][j] < StartArr[1][j+1]){
-        temp = StartArr[j];
-        StartArr[j] = StartArr[j+1];
-        StartArr[j+1] = temp;
-      }
+  } if (stopIterate == true){
+    let j:number = panjang-1;
+    while(j >= i){
+      StartArr[j+1] = StartArr[j]; j--;
     } 
-    if (!swapped) break;
-  }
-
+  } StartArr[i] = inputElmt;
   return StartArr;
 }
 
@@ -110,9 +95,8 @@ async function process(query:string, database:MatrixHSV[]) {
         var databasecocok:[number, number][] = [];
         for (let i = 0; i < database.length; i++){
           let cocok = compare2ImageHSV(await matrixRaw2, database[i]);
-          databasecocok.push([i, cocok]);
-          console.log(`${i}.jpg memiliki ${cocok*100}% kecocokan`);
-        } 
+          databasecocok = insertSort(databasecocok, [i, cocok*100]);
+        } console.log(databasecocok)
         return true;
     } catch{
         console.log("error");
@@ -150,4 +134,4 @@ async function startRun(query:string, folder:string) {
   }
 }
 
-startRun('0.jpg', '../src/public/dataset');
+startRun('white.jpg', '../src/public/dataset');
