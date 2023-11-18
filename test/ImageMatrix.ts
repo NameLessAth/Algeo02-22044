@@ -1,13 +1,15 @@
 const { createCanvas, loadImage } = require('canvas');
-import * as math from 'mathjs';
+const fs = require('fs').promises;
+const path = require('path');
 import CosineSimiliarity from '../src/src/functions/CosineSimiliarity';
-
+import * as math from 'mathjs';
 
 type Vector = [number, number, number];
 type Matrix = number[][];
 type MatrixVector = Vector[][];
+type Array = number[];
 
-async function ImageToMatrix(imagePath: String): Promise<MatrixVector> {
+async function ImageToMatrix(imagePath: String): Promise<Matrix> {
     const canvas: any = createCanvas(256, 256);
     const ctx: any = canvas.getContext('2d');
 
@@ -26,26 +28,13 @@ async function ImageToMatrix(imagePath: String): Promise<MatrixVector> {
             const r = data[position];
             const g = data[position + 1];
             const b = data[position + 2];
-            row[j] = [r, g, b];
+            row.push(rgbToGrayScale(r, g, b));
         }
         matrix[i] = row;
     }
     return matrix;
 }
 
-async function GrayscaleMatrix(matrixRGB: MatrixVector): Promise<Matrix> {
-    const GrayscaleMatrix:number[][] = [];
-    for (let i = 0; i < matrixRGB.length; i++) {
-        const row: number[] = [];
-        for (let j = 0; j < matrixRGB[i].length; j++) {
-            const [r, g, b]= matrixRGB[i][j];
-            const gray = rgbToGrayScale(r, g, b);
-            row.push(gray);
-        }
-        GrayscaleMatrix.push(row);
-    }
-    return GrayscaleMatrix;
-}
 
 function quantizeMatrix(matrix: Matrix) {
     const flatMatrix: number[] = matrix.flat();
@@ -61,8 +50,7 @@ function quantizeMatrix(matrix: Matrix) {
             reshaped[i][j] = GrayscaleInt[i * 256 + j];
         }
     }
-    const reshapedClean: Matrix = reshaped.filter(row => row.some(value => value !== 0));
-    return reshapedClean;
+    return reshaped;
 }
 
 function createCoOccurrenceMatrix(matrix: Matrix, distanceI: number, distanceJ: number, angle: number) {
@@ -72,56 +60,52 @@ function createCoOccurrenceMatrix(matrix: Matrix, distanceI: number, distanceJ: 
         for (let j = 0; j < matrix[i].length; j++) {
             const currentValue = matrix[i][j];
 
-            const neighborI: number = i + distanceI
+            const neighborI: number = i + distanceI;
             const neighborJ: number = j + distanceJ;
 
-            if (neighborJ < matrix[i].length) {
+            if (neighborI >= 0 && neighborI < matrix.length && neighborJ >= 0 && neighborJ < matrix[i].length) {
                 const neighborValue = matrix[neighborI][neighborJ];
-                coOccurrenceMatrix[currentValue][neighborValue]++;
+                
+                if (currentValue >= 0 && currentValue < coOccurrenceMatrix.length &&
+                    neighborValue >= 0 && neighborValue < coOccurrenceMatrix[currentValue].length) {
+                    coOccurrenceMatrix[currentValue][neighborValue]++;
+                }
             }
         }
     }
     return coOccurrenceMatrix;
 }
 
-function transposeMatrix(srcMatrix: Matrix){
-    return srcMatrix[0].map((col, i) => srcMatrix.map(row => row[i]));   
+function transposeMatrix(srcMatrix: Matrix): Matrix {
+    return srcMatrix[0].map((col, i) => srcMatrix.map(row => row[i]));
 }
 
-function addMatrix(matrix1: Matrix, matrix2: Matrix): Matrix{
+function symmetricMatrix(matrix1: Matrix, matrix2: Matrix): Matrix {
+
+    const transposedMatrix2 = transposeMatrix(matrix2);
     const resultMatrix: Matrix = [];
-    
-    for(let i = 0; i < matrix1.length; ++i){
-        resultMatrix[i] = []; 
-        for(let j = 0; j < matrix1[i].length; ++j){
-            resultMatrix[i][j] = matrix1[i][j] + matrix2[i][j];
+
+    for (let i = 0; i < matrix1.length; ++i) {
+        resultMatrix[i] = [];
+        for (let j = 0; j < matrix1[i].length; ++j) {
+            resultMatrix[i][j] = matrix1[i][j] + transposedMatrix2[i][j];
         }
     }
-    return resultMatrix; 
+
+    return resultMatrix;
 }
 
-function symmetricMatrix(matrix1: Matrix, matrix2: Matrix): Matrix{
-    const symmetricMatrix: Matrix = addMatrix(matrix1, matrix2);
-    return symmetricMatrix;
-}
 
 function rgbToGrayScale(r: number, g: number, b: number):number {
     return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
-function determinant(Matrix: Matrix): number{
-    const resultDet: number = math.det(Matrix)
-    return resultDet;
-}
 
-async function normalizeMatrix(file: String): Promise<Matrix> {
-
-    let matrixRaw = await ImageToMatrix(file);
-    let grayMatrix = await GrayscaleMatrix(matrixRaw);
+async function normalizeMatrix(matrixRaw: string): Promise<Matrix> {
+    let grayMatrix = await ImageToMatrix(matrixRaw);
     let quantifizeMatrix =  quantizeMatrix(grayMatrix);
     let GLCM =  createCoOccurrenceMatrix(quantifizeMatrix, 0, 1, 0); 
-    let GLCMTranspose =  transposeMatrix(GLCM);
-    let resultGLCM =  addMatrix(GLCM, GLCMTranspose);
+    let resultGLCM =  symmetricMatrix(GLCM, transposeMatrix(GLCM));
 
     const numRows: number = resultGLCM.length;
     const numCols: number = resultGLCM[0].length;
@@ -132,22 +116,30 @@ async function normalizeMatrix(file: String): Promise<Matrix> {
     return normalized;
 }
 
-function extractContrast(matrix: Matrix): number{
-    let contrast: number = 0; 
-    for(let i = 0; i < matrix.length; ++i){
-        for(let j = 0; j < matrix[i].length; ++j){
-            contrast += matrix[i][j] * Math.pow((i - j), 2);
+function extractContrast(matrix: Matrix): number {
+    let contrast = 0;
+    const matrixLength = matrix.length;
+
+    for (let i = 0; i < matrixLength; ++i) {
+        const row = matrix[i];
+        const rowLength = row.length;
+
+        for (let j = 0; j < rowLength; ++j) {
+            contrast += row[j] * ((i - j) ** 2);
         }
     }
-
     return contrast;
 }
 
+
 function extractHomogeneity(matrix: Matrix): number{
     let result: number = 0;
-    for(let i = 0; i < matrix.length; ++i){
-        for(let j = 0; j < matrix[i].length; ++j){
-            result += matrix[i][j] / (1 + Math.pow(matrix[i][j], 2));
+    let matrixLength: number = matrix.length;
+    for(let i = 0; i < matrixLength; ++i){
+        const row = matrix[i];
+        const rowLength: number = row.length;
+        for(let j = 0; j < rowLength; ++j){
+            result += row[j] / (1 + Math.pow(matrix[i][j], 2));
         }
     }
     return result
@@ -155,73 +147,99 @@ function extractHomogeneity(matrix: Matrix): number{
 
 function extractEntropy(matrix: Matrix): number{
     let result: number = 0; 
-    for(let i = 0; i < matrix.length; ++i){
-        for(let j = 0; j < matrix[i].length; ++j){
-            if(matrix[i][j] !== 0){
-                result += matrix[i][j] * Math.log(matrix[i][j]);
+    let matrixLength = matrix.length;
+    for(let i = 0; i < matrixLength; ++i){
+        const row = matrix[i];
+        const rowLength = row.length;
+        for(let j = 0; j < rowLength; ++j){
+            if(row[j] !== 0){
+                result += row[j] * Math.log(matrix[i][j]);
             }
         }
     }
     return -result; 
 }
 
-function vectorTexture(matrix: Matrix): Vector{
-    const contrast: number = extractContrast(matrix); 
-    const homogeneity: number = extractHomogeneity(matrix); 
-    const entropy: number = extractEntropy(matrix); 
-
-    return [contrast, homogeneity, entropy];
+function calculateMean(database: Vector[]): Vector {
+    const mean: Vector = [0, 0, 0];
+    const databaseLength: number = database.length;
+    mean[0] = database.reduce((acc: number, val: any) => acc + val[0], 0) / databaseLength;
+    mean[1] = database.reduce((acc: number, val: any) => acc + val[1], 0) / databaseLength;
+    mean[2] = database.reduce((acc: number, val: any) => acc + val[2], 0) / databaseLength;
+    return mean;
 }
 
-function printMatrix(matrix: Matrix){
-    matrix.forEach(row => {
-        console.log(row.join(', '));
-    });
-    console.log('\n');
+function calculateStandardDeviation(database: Vector[]): Vector {
+    const databaseLength: number = database.length;
+    const mean0: number = database.reduce((acc: number, val: any) => acc + val[0], 0) / databaseLength;
+    const mean1: number = database.reduce((acc: number, val: any) => acc + val[1], 0) / databaseLength;
+    const mean2: number = database.reduce((acc: number, val: any) => acc + val[2], 0) / databaseLength;
+  
+    const variance0 = database.reduce((acc: number, val: any) => acc + (val[0] - mean0) ** 2, 0) / databaseLength;
+    const variance1 = database.reduce((acc: number, val: any) => acc + (val[1] - mean1) ** 2, 0) / databaseLength;
+    const variance2 = database.reduce((acc: number, val: any) => acc + (val[2] - mean2) ** 2, 0) / databaseLength;
+  
+    const stdDevContrast: number = Math.sqrt(variance0);
+    const stdDevHomogeneity: number = Math.sqrt(variance1);
+    const stdDevEntropy: number = Math.sqrt(variance2);
+    return [stdDevContrast, stdDevHomogeneity, stdDevEntropy];
 }
 
-async function processImage() {
-    const matrixTest: Matrix = [
-        [0, 0, 1], 
-        [1, 2, 3], 
-        [2, 3, 2]   
-    ]
-    try {
-        const testFile = '0.jpg';
-        const testFile2 = '1.jpg';
-        // const matrixRaw = await ImageToMatrix(testFile);
-        // const grayMatrix = await GrayscaleMatrix(matrixRaw);
-        // const quantifizeMatrix = await quantizeMatrix(grayMatrix);
-        // const GLCM = await createCoOccurrenceMatrix(quantifizeMatrix, 0, 1, 0); 
-        // const GLCMTranspose = await transposeMatrix(GLCM);
-        // const resultGLCM = await addMatrix(GLCM, GLCMTranspose);
-        const normalizedGLCM = await normalizeMatrix(testFile);
-        const normalizedGLCM2 = await normalizeMatrix(testFile2);
+function vectorTexture(matrix: Matrix): Vector {
+    const contrast: number = extractContrast(matrix);
+    const homogeneity: number = extractHomogeneity(matrix);
+    const entropy: number = extractEntropy(matrix);
+    
+    return ([contrast, homogeneity, entropy]);
+}
 
-        console.log("Image 1"); 
-        const contrast = await extractContrast(normalizedGLCM);
-        const homogeneity = await extractHomogeneity(normalizedGLCM);
-        const entropy = await extractEntropy(normalizedGLCM); 
-        console.log(contrast);
-        console.log(homogeneity);
-        console.log(entropy);
+function textureNormalize(source: Vector, mean: Vector, std: Vector): Vector{
+    return [(source[0] - mean[0])/std[0], (source[1] - mean[1])/ std[1], (source[2] - mean[2])/std[2]];
+}
 
-        console.log("Image 2"); 
-        const contrast2 = await extractContrast(normalizedGLCM2); 
-        const homogeneity2 = await extractHomogeneity(normalizedGLCM2); 
-        const entropy2 = await extractEntropy(normalizedGLCM2);
-        console.log(contrast2); 
-        console.log(homogeneity2);
-        console.log(entropy2);
-
-        console.log("similarity"); 
-        console.log(CosineSimiliarity(vectorTexture(normalizedGLCM), vectorTexture(normalizedGLCM2)));
-  } catch (error) {
-      console.error('Error occurred:', error);
+async function process(database:Vector[], file: string) {
+    try{
+        const vectorRaw = await normalizeMatrix(file);
+        const vector = await vectorTexture(vectorRaw);
+        const mean: Vector = calculateMean(database); 
+        const std: Vector = calculateStandardDeviation(database);
+        var databaseSimillar:[number, number][] = [];
+        for (let i = 0; i < database.length; i++){
+            const vectorSrc = textureNormalize(vector, mean, std);
+            const checker = textureNormalize(database[i], mean, std);
+            let simillar = CosineSimiliarity(vectorSrc, checker);;
+            databaseSimillar.push([i, simillar]);
+            console.log(`${i}.jpg memiliki ${simillar*100}% kecocokan`);
+        } 
+        return true;
+    } catch{
+        console.log("error");
+        return false;
     }
 }
 
-    const start = process.hrtime();
-    processImage();
-    const end = process.hrtime(start);
-    console.info('Execution time: %ds %dms', end[0], end[1] / 1000000);
+async function startRun(fileSrc: string, folder:string) {
+    const database:Vector[] = [];
+    const files = (await fs.readdir(folder));
+    for(const file of files){
+        const filePath = path.join(folder, file);
+        const isFile = (await fs.stat(filePath)).isFile(); 
+        
+        if(isFile){
+            const fileName = path.basename(filePath);
+            const vector = await normalizeMatrix(filePath); 
+            database.push(vectorTexture(vector));
+        }
+    }
+    const start = performance.now();
+    const berhasil:boolean = await process(database, fileSrc);
+    console.log(`program executed for ${(performance.now()-start)/1000} seconds`);
+}
+
+startRun('0.jpg', '../src/public/dataset')
+
+// untuk menghindari simillarity 99%
+// [contrastMean, homogeneityMean, entropyMean] // seluruth dataseh  MEAN
+// [contrastSTD, homogenitySTD, entropySTD] //seluruh dataset STD
+// [contrast, homogeneity, entropy] // -> rumus - MEAN /STD -> resultn
+//result1 gambar1 dan result2 gambar2

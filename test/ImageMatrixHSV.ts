@@ -1,5 +1,6 @@
 import CosineSimiliarity from '../src/src/functions/CosineSimiliarity'
-import { extractContrast } from '../src/src/functions/TextureRetrieval';
+const fs = require('fs').promises;
+const path = require('path');
 const { createCanvas, loadImage } = require('canvas');
 type Vector3 = [number, number, number];
 type MatrixHSV = Vector3[][]
@@ -103,15 +104,15 @@ function bubbleSort(StartArr:[number, number][]):[number, number][]{
   return StartArr;
 }
 
-async function process(database:MatrixHSV[]) {
+async function process(query:string, database:MatrixHSV[]) {
     try{
-        const matrixRaw2 = extractImageToMatrix('0.jpg');
+        const matrixRaw2 = extractImageToMatrix(query);
         var databasecocok:[number, number][] = [];
         for (let i = 0; i < database.length; i++){
           let cocok = compare2ImageHSV(await matrixRaw2, database[i]);
           databasecocok.push([i, cocok]);
           console.log(`${i}.jpg memiliki ${cocok*100}% kecocokan`);
-        } databasecocok =  bubbleSort(databasecocok);
+        } 
         return true;
     } catch{
         console.log("error");
@@ -128,17 +129,25 @@ async function debugPhoto() {
     console.log(`error ler`);
   }
 }
-async function startRun() {
+async function startRun(query:string, folder:string) {
   const database:MatrixHSV[] = [];
   const debugBool:boolean = false;
   if (!debugBool){
-    for (let i = 0; i <= 4737; i++) database.push(await extractImageToMatrix(`../src/public/dataset/${i}.jpg`));
-    const start = performance.now();
-    const berhasil:boolean = await process(database);
+    const files = (await fs.readdir(folder));
+    for(const file of files){
+        const filePath = path.join(folder, file);
+        const isFile = (await fs.stat(filePath)).isFile(); 
+        
+        if(isFile){
+            const matrixHSV = await extractImageToMatrix(filePath); 
+            database.push(matrixHSV);
+        }
+    }const start = performance.now();
+    const berhasil:boolean = await process(query, database);
     console.log(`program executed for ${(performance.now()-start)/1000} seconds`);
   } else {
     await debugPhoto();
   }
 }
 
-startRun();
+startRun('0.jpg', '../src/public/dataset');
