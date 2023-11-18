@@ -249,7 +249,7 @@ function UploadPage() {
                     {currentItems.map(([filePath, percentage], index) => (
                     <div key={index} className="p-3">
                         <img src={`/api/get-image/${filePath}.jpg`} alt={`no ${index}`} className="w-[350px] h-[250px]" />
-                        <p className="text-center text-nlightgray">{`${percentage}%`}</p>
+                        <p className="text-center text-nlightgray">{`${percentage * 100}%`}</p>
                     </div>
                     ))}
                 </div>
