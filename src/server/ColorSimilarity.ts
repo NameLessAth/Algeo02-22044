@@ -1,4 +1,4 @@
-import CosineSimiliarity from './CosineSimilarity';
+import CosineSimiliarity from './CosineSimilarity'
 import { saveMatrixToFile } from './Saving';
 const fs = require('fs').promises;
 const path = require('path');
@@ -96,14 +96,13 @@ async function process(query:string, database:MatrixHSV[]) {
         var databasecocok:[number, number][] = [];
         for (let i = 0; i < database.length; i++){
           let cocok = compare2ImageHSV(await matrixRaw2, database[i]);
-
-          console.log(`${i}.jpg memiliki ${cocok*100}% kecocokan`);
-          databasecocok.push([i, cocok]);
+          if (cocok > 0.6) {
+            databasecocok = insertSort(databasecocok, [i, cocok]);
+          }
         } 
-        const sortedMatches = databasecocok.sort((a, b) => b[1] - a[1]);
-        await saveMatrixToFile(sortedMatches);
+        await saveMatrixToFile(databasecocok);
         return true;
-    } catch {
+    } catch{
         console.log("error");
         return false;
     }
@@ -118,7 +117,6 @@ async function debugPhoto() {
     console.log(`error`);
   }
 }
-
 async function startRun(query:string, folder:string) {
   const database:MatrixHSV[] = [];
   const debugBool:boolean = false;
@@ -132,8 +130,7 @@ async function startRun(query:string, folder:string) {
             const matrixHSV = await extractImageToMatrix(filePath); 
             database.push(matrixHSV);
         }
-    }     
-    const start = performance.now();
+    }const start = performance.now();
     const berhasil:boolean = await process(query, database);
     console.log(`program executed for ${(performance.now()-start)/1000} seconds`);
   } else {
@@ -141,5 +138,4 @@ async function startRun(query:string, folder:string) {
   }
 }
 
-startRun('./image-uploads/0.jpg', './dataset-uploads')
-
+startRun('./image-uploads/0.jpg', './dataset-uploads');
