@@ -10,7 +10,6 @@ _Project_ ini merupakan tugas besar 2 Aljabar Linear dan Geometri - Penerapan CB
 * [Screenshots](#screenshots)
 * [Setup](#setup)
 * [Cara Menggunakan](#usage)
-* [Acknowledgements](#acknowledgements)
 * [Contact](#contact)
 
 
@@ -39,6 +38,12 @@ _Project_ ini merupakan tugas besar 2 Aljabar Linear dan Geometri - Penerapan CB
 
 
 ## Screenshots
+![Color - 1](https://github.com/NameLessAth/Algeo02-22044/assets/90737534/c895b19b-8822-4ba1-a611-3a82e84e1bed)
+![Color - 2](https://github.com/NameLessAth/Algeo02-22044/assets/90737534/8337638f-42b9-4c8e-9aa0-849dc50e50d1)
+![Color - 3](https://github.com/NameLessAth/Algeo02-22044/assets/90737534/4e59eb8c-d5f3-4d3c-8d17-0a4efacee407)
+![Texture - 1](https://github.com/NameLessAth/Algeo02-22044/assets/90737534/1582fdd0-c15f-446c-9468-b2bd6e2df6f1)
+![Texture - 2](https://github.com/NameLessAth/Algeo02-22044/assets/90737534/d303ef5f-ed87-45a5-bcbf-3714f582e041)
+![Texture - 3](https://github.com/NameLessAth/Algeo02-22044/assets/90737534/3b53d852-2ba6-409a-8399-ecdf365f28a3)
 
 
 ## Setup
