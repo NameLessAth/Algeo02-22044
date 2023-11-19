@@ -1,8 +1,9 @@
 const { createCanvas, loadImage } = require('canvas');
 const fs = require('fs').promises;
 const path = require('path');
-import CosineSimiliarity from './CosineSimilarity'
 import * as math from 'mathjs';
+import { saveMatrixToFile } from './Saving';
+import CosineSimiliarity from './CosineSimilarity';
 
 type Vector = [number, number, number];
 type Matrix = number[][];
@@ -207,10 +208,14 @@ async function process(database:Vector[], file: string) {
         for (let i = 0; i < database.length; i++){
             const vectorSrc = textureNormalize(vector, mean, std);
             const checker = textureNormalize(database[i], mean, std);
-            let simillar = CosineSimiliarity(vectorSrc, checker);;
-            databaseSimillar.push([i, simillar]);
+            let simillar = CosineSimiliarity(vectorSrc, checker);
+            if (simillar > 0.60) {
+                databaseSimillar.push([i, simillar]);
+            }
             console.log(`${i}.jpg memiliki ${simillar*100}% kecocokan`);
         } 
+        const sortedMatches = databaseSimillar.sort((a, b) => b[1] - a[1]);
+        await saveMatrixToFile(sortedMatches);
         return true;
     } catch{
         console.log("error");
@@ -236,7 +241,7 @@ async function startRun(fileSrc: string, folder:string) {
     console.log(`program executed for ${(performance.now()-start)/1000} seconds`);
 }
 
-startRun('./image-uploads/0.jpg', './dataset-uploads')
+startRun('./image-uploads/0.jpg', './dataset-uploads');
 
 // untuk menghindari simillarity 99%
 // [contrastMean, homogeneityMean, entropyMean] // seluruth dataseh  MEAN

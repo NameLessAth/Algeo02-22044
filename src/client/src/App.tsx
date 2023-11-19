@@ -3,6 +3,7 @@ import './App.css';
 import Title from './components/Title';
 import WhiteBar from './components/WhiteBar';
 import UploadPage from './components/UploadPage';
+import Description from './components/Description';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <br />
       <UploadPage />
       <br />
+      <Description />
     </div>
   );
 }
