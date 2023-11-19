@@ -111,12 +111,11 @@ async function process(database:MatrixHSV[]) {
         var databasecocok:[number, number][] = [];
         for (let i = 0; i < database.length; i++){
           let cocok = compare2ImageHSV(await matrixRaw2, database[i]);
-          databasecocok.push([i, cocok]);
           console.log(`${i}.jpg memiliki ${cocok*100}% kecocokan`);
-          if (cocok >= 60) {
-            databasecocok.push([i, cocok]);
-          } 
-        } const sortedMatches = databasecocok.sort((a, b) => b[1] - a[1]);
+          databasecocok.push([i, cocok]);
+        } 
+        const sortedMatches = databasecocok.sort((a, b) => b[1] - a[1]);
+        await saveMatrixToFile(sortedMatches);
         return sortedMatches;
     } catch {
         console.log("error");

@@ -244,12 +244,18 @@ function UploadPage() {
             </div>
             <WhiteBar />
             <div className="flex flex-col items-center justify-center h-full w-full pb-10">
-            { similarityTime === 0 ? <p></p> : <p className='text-nlightgray'>CBIR time spent: {similarityTime / 1000}s</p>}
+            { similarityTime === 0 ? <p></p> : 
+                <p className='text-nlightgray text-center'>
+                    CBIR time spent: {similarityTime / 1000}s
+                    <br />
+                    Image amount: {similarityResult.length}
+                </p>
+            }
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">    
                     {currentItems.map(([filePath, percentage], index) => (
                     <div key={index} className="p-3">
                         <img src={`/api/get-image/${filePath}.jpg`} alt={`no ${index}`} className="w-[350px] h-[250px]" />
-                        <p className="text-center text-nlightgray">{`${percentage}%`}</p>
+                        <p className="text-center text-nlightgray">{`${percentage * 100}%`}</p>
                     </div>
                     ))}
                 </div>
