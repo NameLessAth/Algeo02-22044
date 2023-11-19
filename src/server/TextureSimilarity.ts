@@ -1,7 +1,7 @@
 const { createCanvas, loadImage } = require('canvas');
 const fs = require('fs').promises;
 const path = require('path');
-import CosineSimiliarity from './CosineSimilarity'
+import CosineSimiliarity from './CosineSimilarity';
 import * as math from 'mathjs';
 import { saveMatrixToFile } from './Saving';
 
@@ -210,8 +210,8 @@ async function process(database:Vector[], file: string) {
             const checker = textureNormalize(database[i], mean, std);
             let simillar = CosineSimiliarity(vectorSrc, checker);;
             databaseSimillar.push([i, simillar]);
-            console.log(`${i}.jpg memiliki ${simillar*100}% kecocokan`);
-        } 
+            // console.log(`${i}.jpg memiliki ${simillar*100}% kecocokan`);
+        }
         const sortedMatches = databaseSimillar.sort((a, b) => b[1] - a[1]);
         await saveMatrixToFile(sortedMatches);
         return true;

@@ -22,9 +22,6 @@ _Project_ ini merupakan tugas besar 2 Aljabar Linear dan Geometri - Penerapan CB
 
 ## General Information
 - _Project_ ini merupakan sebuah pengembangan aplikasi berbasis web yang bertujuan untuk mengimplementasikan CBIR (Content-Based Information Retrieval)
-- What problem does it (intend to) solve?
-- What is the purpose of your project?
-- Why did you undertake it?
 
 
 ## Technologies Used
