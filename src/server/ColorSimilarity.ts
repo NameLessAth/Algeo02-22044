@@ -1,4 +1,4 @@
-import CosineSimiliarity from './CosineSimilarity'
+import CosineSimiliarity from './CosineSimilarity';
 import { saveMatrixToFile } from './Saving';
 const fs = require('fs').promises;
 const path = require('path');
@@ -30,7 +30,7 @@ function RGBtoHSV(V1:Vector3):Vector3 {
     if (max == min) hue = 0;
     else if (max == raksen) hue = (((gaksen-baksen)/(max-min))%6)*60;
     else if (max == gaksen) hue = (((baksen-raksen)/(max-min))+2)*60;
-    else hue = (((raksen-gaksen)/(max-min))+4)/60;
+    else hue = (((raksen-gaksen)/(max-min))+4)*60;
     
 
     if (max == 0) saturation = 0;
@@ -56,7 +56,7 @@ async function extractImageToMatrix(imagePath: String): Promise<MatrixHSV> {
       const position = (i * width + j) * 4;
       const [r, g, b, a] = data.slice(position, position + 4);
 
-      row.push([r,g,b]); 
+      row.push(RGBtoHSV([r,g,b])); 
     }
     matrix.push(row); 
   }
@@ -74,93 +74,69 @@ function compare2ImageHSV(MatImg1:MatrixHSV, MatImg2:MatrixHSV){
 }
 
 function insertSort(StartArr:[number, number][], inputElmt:[number, number]):[number, number][]{
-  let stopIterate:boolean = false;
-  let i:number = 0; let j:number;
-  while ((i < StartArr.length)&&(!stopIterate)) {
+  let panjang:number = StartArr.length;
+  if (panjang == 0){
+    StartArr.push(inputElmt); return StartArr
+  } let i:number = 0; let stopIterate:boolean = false; 
+  while ((i < panjang)&&(!stopIterate)) {
     if (inputElmt[1] > StartArr[i][1]) stopIterate = true;
     else i++;
-  } if (stopIterate){
-    j = i;
-    while(j < StartArr.length) StartArr[j+1] = StartArr[j];
+  } if (stopIterate == true){
+    let j:number = panjang-1;
+    while(j >= i){
+      StartArr[j+1] = StartArr[j]; j--;
+    } 
   } StartArr[i] = inputElmt;
   return StartArr;
 }
 
-function bubbleSort(StartArr:[number, number][]):[number, number][]{
-  let n:number = StartArr.length;
-  let temp:[number, number] = [0,0];
-  let swapped:boolean = false;
-  for (let i = 0; i < n-1; i++){
-    swapped = false;
-    for (let j = 0; j < n - (i+1); j++){
-      if (StartArr[1][j] < StartArr[1][j+1]){
-        temp = StartArr[j];
-        StartArr[j] = StartArr[j+1];
-        StartArr[j+1] = temp;
-      }
-    } 
-    if (!swapped) break;
-  }
-
-  return StartArr;
-}
-
-async function process(database:MatrixHSV[]) {
+async function process(query:string, database:MatrixHSV[]) {
     try{
-        const matrixRaw2 = extractImageToMatrix('./image-uploads/0.jpg');
+        const matrixRaw2 = extractImageToMatrix(query);
         var databasecocok:[number, number][] = [];
         for (let i = 0; i < database.length; i++){
           let cocok = compare2ImageHSV(await matrixRaw2, database[i]);
-          databasecocok.push([i, cocok]);
-          console.log(`${i}.jpg memiliki ${cocok*100}% kecocokan`);
-          if (cocok >= 60) {
-            databasecocok.push([i, cocok]);
-          } 
-        } const sortedMatches = databasecocok.sort((a, b) => b[1] - a[1]);
-        return sortedMatches;
-    } catch {
+          databasecocok = insertSort(databasecocok, [i, cocok*100]);
+        } 
+        console.log(databasecocok)
+        await saveMatrixToFile(databasecocok);
+        return true;
+    } catch{
         console.log("error");
-        return [];
+        return false;
     }
 }
 
 async function debugPhoto() {
   try{
-    const matrixRaw = await extractImageToMatrix('./image-uploads/0.jpg');
-    const matrixRaw2 = await extractImageToMatrix('./dataset-uploads/0.jpg');
+    const matrixRaw = await extractImageToMatrix('../src/public/dataset/4503.jpg');
+    const matrixRaw2 = await extractImageToMatrix('0.jpg');
     console.log("kecocokannya adalah = ",compare2ImageHSV(matrixRaw, matrixRaw2));
   }catch{
     console.log(`error`);
   }
 }
-
-async function startRun() {
+async function startRun(query:string, folder:string) {
   const database:MatrixHSV[] = [];
   const debugBool:boolean = false;
-  if (!debugBool) {
-    const folderPath = './dataset-uploads'; 
-    const files = await fs.readdir(folderPath);
-
-    for (let i = 0; i < files.length; i++) {
-      database.push(await extractImageToMatrix(`${folderPath}/${i}.jpg`));
-    }
-
+  if (!debugBool){
+    const files = (await fs.readdir(folder));
+    for(const file of files){
+        const filePath = path.join(folder, file);
+        const isFile = (await fs.stat(filePath)).isFile(); 
+        
+        if(isFile){
+            const matrixHSV = await extractImageToMatrix(filePath); 
+            database.push(matrixHSV);
+        }
+    }     
     const start = performance.now();
-    const sortedMatches = await process(database);
-
-    await saveMatrixToFile(sortedMatches);
-
-    sortedMatches.forEach(([index, percentage]) => {
-      console.log(`Image ${index}.jpg has a ${percentage}% match`);
-    });
-
-    console.log(sortedMatches);
-
-    console.log(`Program executed for ${(performance.now() - start) / 1000} seconds`);
+    const berhasil:boolean = await process(query, database);
+    console.log(`program executed for ${(performance.now()-start)/1000} seconds`);
   } else {
     await debugPhoto();
   }
-
 }
 
-startRun();
+startRun('./image-uploads/0.jpg', './dataset-uploads')
+
