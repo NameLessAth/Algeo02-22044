@@ -118,6 +118,7 @@ async function debugPhoto() {
     console.log(`error`);
   }
 }
+
 async function startRun(query:string, folder:string) {
   const database:MatrixHSV[] = [];
   const debugBool:boolean = false;
