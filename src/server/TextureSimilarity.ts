@@ -198,25 +198,6 @@ function textureNormalize(source: Vector, mean: Vector, std: Vector): Vector{
     return [(source[0] - mean[0])/std[0], (source[1] - mean[1])/ std[1], (source[2] - mean[2])/std[2]];
 }
 
-function bubbleSort(StartArr:[number, number][]):[number, number][]{
-    let n:number = StartArr.length;
-    let temp:[number, number] = [0,0];
-    let swapped:boolean = false;
-    for (let i = 0; i < n-1; i++){
-      swapped = false;
-      for (let j = 0; j < n - (i+1); j++){
-        if (StartArr[1][j] < StartArr[1][j+1]){
-          temp = StartArr[j];
-          StartArr[j] = StartArr[j+1];
-          StartArr[j+1] = temp;
-        }
-      } 
-      if (!swapped) break;
-    }
-  
-    return StartArr;
-}
-
 async function process(database:Vector[], file: string) {
     try{
         const vectorRaw = await normalizeMatrix(file);
